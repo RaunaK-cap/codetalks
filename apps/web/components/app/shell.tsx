@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { ChevronsUpDown, FolderGit2, History, House, LogOut, Plus, Settings } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { user } from "@/lib/mock";
+import { useCandidate } from "@/lib/candidate";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -32,6 +32,10 @@ function isActive(pathname: string, href: string) {
 }
 
 function UserMenu({ compact = false }: { compact?: boolean }) {
+  const { candidate, forget } = useCandidate();
+  const gh = candidate?.github;
+  const name = gh?.name ?? gh?.login ?? "Not connected";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -41,16 +45,17 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
         )}
       >
         <Avatar className="size-7">
+          {gh && <AvatarImage src={gh.avatarUrl} alt="" />}
           <AvatarFallback className="bg-foreground font-mono text-[0.6875rem] text-background">
-            {user.initials}
+            {name.slice(0, 1).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         {!compact && (
           <>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[0.8125rem] font-medium">{user.name}</span>
-              <span className="block font-mono text-[0.625rem] text-muted-foreground">
-                {user.plan} plan
+              <span className="block truncate text-[0.8125rem] font-medium">{name}</span>
+              <span className="block truncate font-mono text-[0.625rem] text-muted-foreground">
+                {gh ? `@${gh.login}` : "Connect GitHub"}
               </span>
             </span>
             <ChevronsUpDown className="size-3.5 text-muted-foreground" />
@@ -58,7 +63,9 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align={compact ? "end" : "start"} side={compact ? "bottom" : "top"} className="w-52">
-        <DropdownMenuLabel className="font-mono text-[0.6875rem]">Signed in as {user.name}</DropdownMenuLabel>
+        <DropdownMenuLabel className="font-mono text-[0.6875rem]">
+          {gh ? `Connected as @${gh.login}` : "No GitHub connected"}
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/settings" />}>
           <Settings /> Settings
@@ -66,29 +73,16 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
         <DropdownMenuItem render={<Link href="/" />}>
           <House /> Landing page
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link href="/auth" />}>
-          <LogOut /> Sign out
-        </DropdownMenuItem>
+        {gh && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={forget}>
+              <LogOut /> Disconnect
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-function UsageCard() {
-  const pct = (user.usedToday / user.dailyLimit) * 100;
-  return (
-    <div className="rounded-xl border border-black/[0.07] bg-white p-3">
-      <div className="flex items-center justify-between font-mono text-[0.6875rem]">
-        <span className="text-muted-foreground">Today</span>
-        <span className="tabular-nums">
-          {user.usedToday} / {user.dailyLimit} calls
-        </span>
-      </div>
-      <span className="mt-2 block h-1 overflow-hidden rounded-full bg-black/[0.06]">
-        <span className="block h-full rounded-full bg-foreground" style={{ width: `${pct}%` }} />
-      </span>
-    </div>
   );
 }
 
@@ -137,8 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </ul>
         </nav>
-        <div className="mt-auto grid gap-2">
-          <UsageCard />
+        <div className="mt-auto">
           <UserMenu />
         </div>
       </aside>

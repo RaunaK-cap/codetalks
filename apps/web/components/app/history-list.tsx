@@ -2,28 +2,116 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import useSWR from "swr";
 import { ChevronRight, Search } from "lucide-react";
+import type { InterviewSummary } from "@repo/contracts";
 import { Card } from "@/components/app/card";
-import { ScorePips, ScoreNumber, SourceIcon } from "@/components/app/score";
+import { ScoreNumber, SourceIcon } from "@/components/app/score";
+import { ConnectFirst, Empty, ErrorNote, LoadingCards } from "@/components/app/states";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DIMENSIONS, DIMENSION_LABEL, ROLES, formatDate, formatDuration, interviews, overall } from "@/lib/mock";
+import { api, errorMessage } from "@/lib/api";
+import { useCandidate } from "@/lib/candidate";
+import { DIMENSIONS, DIMENSION_LABEL, ROLES, ROLE_LABEL, STATUS_LABEL, average, formatDate, formatDuration } from "@/lib/labels";
+import { cn } from "@/lib/utils";
 
-const ROLE_ITEMS = [{ value: "all", label: "All roles" }, ...ROLES.map((r) => ({ value: r, label: r }))];
+const ROLE_ITEMS = [{ value: "all", label: "All roles" }, ...ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }))];
+
+function Row({ i }: { i: InterviewSummary }) {
+  const score = i.scores ? average(i.scores.map((s) => s.score)) : null;
+  const length = formatDuration(i.startedAt, i.endedAt);
+  const href = i.status === "ready" || i.status === "live" ? `/interviews/${i.id}/call` : `/interviews/${i.id}`;
+
+  return (
+    <Link
+      href={href}
+      className="group grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-black/[0.02] md:grid-cols-[1fr_6rem_9rem_4.5rem_4.5rem_5rem_1rem]"
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-black/[0.08]">
+          <SourceIcon kind="github" />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-[0.8125rem] font-medium">{i.repo.split("/")[1] ?? i.repo}</span>
+          <span className="block truncate font-mono text-[0.6875rem] text-muted-foreground">
+            {i.repo}
+            <span className="md:hidden">
+              {" "}
+              · {ROLE_LABEL[i.role]} · {formatDate(i.createdAt)}
+            </span>
+          </span>
+        </span>
+      </span>
+      <span className="hidden font-mono text-[0.6875rem] text-muted-foreground md:block">{ROLE_LABEL[i.role]}</span>
+      <span className="hidden gap-1.5 md:flex">
+        {i.scores ? (
+          DIMENSIONS.map((d) => {
+            const v = i.scores!.find((s) => s.dimension === d)?.score ?? 0;
+            return (
+              <span
+                key={d}
+                title={`${DIMENSION_LABEL[d]} ${v}/5`}
+                className="flex h-4 w-1.5 items-end overflow-hidden rounded-full bg-black/[0.06]"
+              >
+                <span className="w-full rounded-full bg-foreground" style={{ height: `${(v / 5) * 100}%` }} />
+              </span>
+            );
+          })
+        ) : (
+          <span className="font-mono text-[0.6875rem] text-muted-foreground">—</span>
+        )}
+      </span>
+      <span className="hidden font-mono text-[0.6875rem] text-muted-foreground tabular-nums md:block">{length ?? "—"}</span>
+      <span className="hidden font-mono text-[0.6875rem] text-muted-foreground md:block">{formatDate(i.createdAt)}</span>
+      <span className="flex items-center justify-end gap-2">
+        {score !== null ? (
+          <ScoreNumber value={score} className="text-[0.75rem]" />
+        ) : (
+          <span
+            className={cn(
+              "rounded-full border px-2 py-0.5 font-mono text-[0.625rem]",
+              i.status === "failed" || i.status === "report_failed"
+                ? "border-destructive/30 text-destructive"
+                : "border-black/[0.1] text-muted-foreground",
+            )}
+          >
+            {STATUS_LABEL[i.status]}
+          </span>
+        )}
+      </span>
+      <ChevronRight className="hidden size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 md:block" />
+    </Link>
+  );
+}
 
 export function HistoryList() {
+  const { id, candidate, isLoading } = useCandidate();
+  const list = useSWR(id ? ["interviews", id] : null, () => api.listInterviews(id!));
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<string | null>("all");
 
   const rows = useMemo(
     () =>
-      interviews.filter(
-        (i) =>
-          (role === "all" || i.role === role) &&
-          `${i.title} ${i.source.label}`.toLowerCase().includes(query.trim().toLowerCase()),
+      (list.data ?? []).filter(
+        (i) => (role === "all" || i.role === role) && i.repo.toLowerCase().includes(query.trim().toLowerCase()),
       ),
-    [query, role],
+    [list.data, query, role],
   );
+
+  if (isLoading) return <LoadingCards count={1} />;
+  if (!candidate) return <ConnectFirst />;
+  if (list.error) return <ErrorNote message={errorMessage(list.error)} onRetry={() => list.mutate()} />;
+  if (list.isLoading) return <LoadingCards count={1} />;
+  if (!list.data?.length) {
+    return (
+      <Empty
+        className="mt-8 py-16"
+        title="No interviews yet"
+        body="Every interview you take is saved here with its report."
+        action={{ label: "Start your first interview", href: "/interviews/new" }}
+      />
+    );
+  }
 
   return (
     <>
@@ -33,8 +121,8 @@ export function HistoryList() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search interviews"
-            aria-label="Search interviews"
+            placeholder="Search by repo"
+            aria-label="Search by repo"
             className="pl-9"
           />
         </div>
@@ -66,50 +154,12 @@ export function HistoryList() {
           <span />
         </div>
         {rows.length === 0 ? (
-          <p className="px-5 py-12 text-center font-mono text-[0.75rem] text-muted-foreground">
-            No interviews match that.
-          </p>
+          <p className="px-5 py-12 text-center font-mono text-[0.75rem] text-muted-foreground">No interviews match that.</p>
         ) : (
           <ul className="divide-y divide-black/[0.05]">
             {rows.map((i) => (
               <li key={i.id}>
-                <Link
-                  href={`/interviews/${i.id}`}
-                  className="group grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-black/[0.02] md:grid-cols-[1fr_6rem_9rem_4.5rem_4.5rem_5rem_1rem]"
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-black/[0.08]">
-                      <SourceIcon kind={i.source.kind} />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-[0.8125rem] font-medium">{i.title}</span>
-                      <span className="block truncate font-mono text-[0.6875rem] text-muted-foreground">
-                        {i.source.label}
-                        <span className="md:hidden"> · {i.role} · {formatDate(i.date)}</span>
-                      </span>
-                    </span>
-                  </span>
-                  <span className="hidden font-mono text-[0.6875rem] text-muted-foreground md:block">{i.role}</span>
-                  <span
-                    className="hidden gap-1.5 md:flex"
-                    aria-label={DIMENSIONS.map((d) => `${DIMENSION_LABEL[d]} ${i.scores[d]} of 5`).join(", ")}
-                  >
-                    {DIMENSIONS.map((d) => (
-                      <span key={d} className="flex h-4 w-1.5 items-end overflow-hidden rounded-full bg-black/[0.06]">
-                        <span className="w-full rounded-full bg-foreground" style={{ height: `${(i.scores[d] / 5) * 100}%` }} />
-                      </span>
-                    ))}
-                  </span>
-                  <span className="hidden font-mono text-[0.6875rem] text-muted-foreground tabular-nums md:block">
-                    {formatDuration(i.durationSec)}
-                  </span>
-                  <span className="hidden font-mono text-[0.6875rem] text-muted-foreground md:block">{formatDate(i.date)}</span>
-                  <span className="flex items-center justify-end gap-2">
-                    <span className="hidden sm:inline-flex md:hidden"><ScorePips value={Math.round(overall(i.scores))} /></span>
-                    <ScoreNumber value={overall(i.scores)} className="text-[0.75rem]" />
-                  </span>
-                  <ChevronRight className="hidden size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 md:block" />
-                </Link>
+                <Row i={i} />
               </li>
             ))}
           </ul>

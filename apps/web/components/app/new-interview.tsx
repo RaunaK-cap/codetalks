@@ -1,54 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useState } from "react";
+import useSWR from "swr";
+import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, Loader2, Mic, Star } from "lucide-react";
+import type { GithubRepo, InterviewView, Role } from "@repo/contracts";
 import { Card, MonoLabel } from "@/components/app/card";
-import { Dropzone } from "@/components/app/dropzone";
-import { SourceIcon } from "@/components/app/score";
+import { ConnectFirst, Empty, LoadingCards } from "@/components/app/states";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DIMENSIONS, DIMENSION_LABEL, ROLES, planPreview, sources, type Dimension } from "@/lib/mock";
+import { api, errorMessage } from "@/lib/api";
+import { useCandidate } from "@/lib/candidate";
+import { DIMENSION_LABEL, ROLES, ROLE_HINT, ROLE_LABEL, STEP_LABEL, formatDate } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 const ease = [0.16, 1, 0.3, 1] as const;
-
-const ROLE_HINT: Record<(typeof ROLES)[number], string> = {
-  Backend: "APIs, data, reliability",
-  Frontend: "UI state, performance, a11y",
-  "Full-stack": "End to end, tradeoffs",
-  "New grad": "Fundamentals, projects",
-};
-
-const PREP_STEPS = ["Reading your source", "Building the fact sheet", "Writing the question plan"];
-
-type Phase = "choose" | "preparing" | "ready";
+const SHOWN = 6;
+const STEPS = ["reading_repo", "building_fact_sheet", "writing_plan"] as const;
 
 function Choice({
   selected,
   onSelect,
+  disabled,
   children,
-  className,
 }: {
   selected: boolean;
   onSelect: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
-  className?: string;
 }) {
   return (
     <button
       type="button"
       role="radio"
       aria-checked={selected}
+      disabled={disabled}
       onClick={onSelect}
       className={cn(
-        "relative rounded-xl border p-3.5 text-left transition-[border-color,background-color,box-shadow] duration-200",
+        "relative rounded-xl border bg-white p-3.5 text-left transition-[border-color,box-shadow] duration-200 disabled:cursor-not-allowed",
         selected
-          ? "border-foreground/70 bg-white shadow-[0_0_0_3px_oklch(0_0_0/6%)]"
-          : "border-black/[0.08] bg-white hover:border-black/20",
-        className,
+          ? "border-foreground/70 shadow-[0_0_0_3px_oklch(0_0_0/6%)]"
+          : "border-black/[0.08] enabled:hover:border-black/20",
       )}
     >
       {selected && (
@@ -77,228 +69,198 @@ function StepLabel({ n, title, done }: { n: number; title: string; done?: boolea
   );
 }
 
-export function NewInterview({
-  initialRepo,
-  initialRole,
-  focus,
-}: {
-  initialRepo?: string;
-  initialRole?: string;
-  focus?: string;
-}) {
-  const reduce = useReducedMotion();
-  const [tab, setTab] = useState<string>(initialRepo === "resume" ? "resume" : "github");
-  const [repo, setRepo] = useState(initialRepo?.startsWith("repo:") ? initialRepo.slice(5) : sources.github.repos[0]!.name);
-  const [url, setUrl] = useState("");
-  const [role, setRole] = useState<string>(ROLES.includes(initialRole as never) ? initialRole! : "Backend");
-  const [focusDims, setFocusDims] = useState<Dimension[]>(
-    DIMENSIONS.includes(focus as Dimension) ? [focus as Dimension] : [],
-  );
-  const [phase, setPhase] = useState<Phase>("choose");
-  const [step, setStep] = useState(0);
+function PlanStatus({ view, onRetry }: { view: InterviewView; onRetry: () => void }) {
+  if (view.status === "preparing") {
+    const current = view.step ? STEPS.indexOf(view.step) : 0;
+    return (
+      <ul className="mt-4 space-y-2.5" aria-live="polite">
+        {STEPS.map((s, i) => (
+          <li key={s} className="flex items-center gap-2.5 font-mono text-[0.75rem]">
+            <span className="grid size-4 place-items-center">
+              {i < current ? (
+                <Check className="size-3.5" />
+              ) : i === current ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <span className="size-1.5 rounded-full bg-black/20" />
+              )}
+            </span>
+            <span className={i <= current ? "text-foreground" : "text-muted-foreground"}>{STEP_LABEL[s]}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
-  const needsUrl = tab === "github" && !sources.github.connected && !url.trim();
-  const sourceLabel = tab === "github" ? (url.trim() || (sources.github.connected ? repo : "No repo yet")) : tab === "resume" ? "resume.pdf" : "LinkedIn PDF";
+  if (view.status === "failed") {
+    return (
+      <div role="alert" className="mt-4 rounded-xl border border-destructive/25 bg-destructive/[0.04] p-4">
+        <p className="text-[0.8125rem] font-medium text-destructive">Couldn't prepare this interview.</p>
+        <p className="mt-1 font-mono text-[0.6875rem] text-muted-foreground">{view.failure?.reason}</p>
+        <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    if (phase !== "preparing") return;
-    if (step >= PREP_STEPS.length) {
-      setPhase("ready");
-      return;
+  if (view.status === "ready" || view.status === "live") {
+    return (
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="mt-4">
+        <p className="text-[0.8125rem] text-muted-foreground">{view.summary}</p>
+        <p className="mt-3 rounded-xl bg-black/[0.03] p-3 text-[0.8125rem] text-foreground/80 italic">“{view.plan.opener}”</p>
+        <ol className="mt-3 divide-y divide-black/[0.05]">
+          {view.plan.questions.map((q, i) => (
+            <motion.li
+              key={q.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease, delay: 0.06 * i }}
+              className="grid grid-cols-[1.5rem_1fr] gap-2 py-3"
+            >
+              <span className="font-mono text-[0.6875rem] text-muted-foreground">0{i + 1}</span>
+              <span>
+                <span className="block text-[0.8125rem]">{q.ask}</span>
+                <span className="mt-1.5 inline-flex rounded-md bg-black/[0.04] px-1.5 py-0.5 font-mono text-[0.625rem] text-muted-foreground">
+                  {DIMENSION_LABEL[q.dimension]}
+                </span>
+              </span>
+            </motion.li>
+          ))}
+        </ol>
+      </motion.div>
+    );
+  }
+
+  return null;
+}
+
+export function NewInterview({ initialRepo }: { initialRepo?: string }) {
+  const { candidate, isLoading } = useCandidate();
+  const [repo, setRepo] = useState<string | null>(initialRepo ?? null);
+  const [role, setRole] = useState<Role>("backend");
+  const [showAll, setShowAll] = useState(false);
+  const [interviewId, setInterviewId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { data: view } = useSWR(interviewId ? ["interview", interviewId] : null, () => api.getInterview(interviewId!), {
+    refreshInterval: (latest) => (latest?.status === "preparing" ? 1500 : 0),
+  });
+
+  if (isLoading) return <LoadingCards count={2} />;
+  if (!candidate) return <ConnectFirst />;
+
+  const repos = candidate.github.repos
+    .filter((r) => !r.isFork)
+    .sort((a, b) => b.pushedAt.localeCompare(a.pushedAt));
+  const selected: GithubRepo | undefined = repos.find((r) => r.fullName === repo) ?? repos[0];
+  const locked = interviewId !== null;
+  const ready = view?.status === "ready";
+
+  const prepare = async () => {
+    if (!selected) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const created = await api.createInterview({ candidateId: candidate.id, role, repo: selected.fullName });
+      setInterviewId(created.id);
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setCreating(false);
     }
-    const id = setTimeout(() => setStep((s) => s + 1), reduce ? 200 : 1100);
-    return () => clearTimeout(id);
-  }, [phase, step, reduce]);
-
-  const prepare = () => {
-    setStep(0);
-    setPhase("preparing");
   };
+
+  const reset = () => {
+    setInterviewId(null);
+    setError(null);
+  };
+
+  if (!repos.length) {
+    return (
+      <Empty
+        className="mt-8 py-16"
+        title="No repos to interview on"
+        body={`@${candidate.github.login} has no public repos of their own yet. Push one, then refresh GitHub on the Sources page.`}
+        action={{ label: "Open Sources", href: "/sources" }}
+      />
+    );
+  }
 
   return (
     <div className="mt-8 grid gap-3 lg:grid-cols-[1fr_20rem]">
       <div className="grid gap-3">
         <Card className="p-5">
-          <StepLabel n={1} title="What should we interview you on?" done={phase !== "choose"} />
-          <Tabs value={tab} onValueChange={(v) => setTab(v as string)} className="mt-4">
-            <TabsList className="h-9 rounded-full bg-black/[0.04] p-1">
-              {[
-                { v: "github", label: "GitHub repo", kind: "github" as const },
-                { v: "resume", label: "Resume", kind: "resume" as const },
-                { v: "linkedin", label: "LinkedIn", kind: "linkedin" as const },
-              ].map((t) => (
-                <TabsTrigger
-                  key={t.v}
-                  value={t.v}
-                  disabled={phase !== "choose"}
-                  className="rounded-full px-3 font-mono text-[0.6875rem] data-active:shadow-[0_1px_2px_oklch(0_0_0/8%)]"
-                >
-                  <SourceIcon kind={t.kind} className="size-3" /> {t.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            <TabsContent value="github" className="mt-3">
-              {sources.github.connected ? (
-              <div role="radiogroup" aria-label="Repository" className="grid gap-2 sm:grid-cols-2">
-                {sources.github.repos.map((r) => (
-                  <Choice
-                    key={r.name}
-                    selected={!url && repo === r.name}
-                    onSelect={() => {
-                      if (phase !== "choose") return;
-                      setRepo(r.name);
-                      setUrl("");
-                    }}
-                  >
-                    <span className="block pr-6 text-[0.8125rem] font-medium">{r.name}</span>
-                    <span className="mt-1 line-clamp-1 block text-[0.75rem] text-muted-foreground">{r.description}</span>
-                    <span className="mt-2.5 flex items-center gap-2 font-mono text-[0.625rem] text-muted-foreground">
-                      {r.lang} · <Star className="size-2.5" /> {r.stars} · {r.pushed}
-                    </span>
-                  </Choice>
-                ))}
-              </div>
-              ) : (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-black/[0.12] p-3.5">
-                  <span className="font-mono text-[0.6875rem] text-muted-foreground">
-                    Connect GitHub to pick from your repos, or paste a public repo URL below.
-                  </span>
-                  <Link href="/sources" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                    Connect GitHub
-                  </Link>
-                </div>
-              )}
-              <div className="mt-3">
-                <Input
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  disabled={phase !== "choose"}
-                  placeholder="Or paste any public repo URL: github.com/owner/repo"
-                  aria-label="Public repo URL"
-                />
-              </div>
-            </TabsContent>
-            <TabsContent value="resume" className="mt-3">
-              <div className="flex items-center gap-3 rounded-xl border border-foreground/70 p-3 shadow-[0_0_0_3px_oklch(0_0_0/6%)]">
-                <span className="grid size-9 place-items-center rounded-lg bg-black/[0.04]">
-                  <SourceIcon kind="resume" />
+          <StepLabel n={1} title="Which repo should we interview you on?" done={locked} />
+          <div role="radiogroup" aria-label="Repository" className="mt-4 grid gap-2 sm:grid-cols-2">
+            {(showAll ? repos : repos.slice(0, SHOWN)).map((r) => (
+              <Choice key={r.fullName} selected={selected?.fullName === r.fullName} disabled={locked} onSelect={() => setRepo(r.fullName)}>
+                <span className="block truncate pr-6 text-[0.8125rem] font-medium">{r.name}</span>
+                <span className="mt-1 line-clamp-1 block text-[0.75rem] text-muted-foreground">
+                  {r.description ?? "No description"}
                 </span>
-                <span className="flex-1">
-                  <span className="block text-[0.8125rem] font-medium">resume.pdf</span>
-                  <span className="block font-mono text-[0.6875rem] text-muted-foreground">2 pages · already added</span>
+                <span className="mt-2.5 flex items-center gap-2 font-mono text-[0.625rem] text-muted-foreground">
+                  {r.language ?? "—"} · <Star className="size-2.5" /> {r.stars} · {formatDate(r.pushedAt)}
                 </span>
-              </div>
-            </TabsContent>
-            <TabsContent value="linkedin" className="mt-3">
-              <Dropzone label="Add LinkedIn PDF" hint="Profile → More → Save to PDF" />
-            </TabsContent>
-          </Tabs>
+              </Choice>
+            ))}
+          </div>
+          {repos.length > SHOWN && !locked && (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="mt-3 font-mono text-[0.6875rem] text-muted-foreground underline decoration-black/20 underline-offset-4 hover:text-foreground"
+            >
+              {showAll ? "Show fewer" : `Show all ${repos.length}`}
+            </button>
+          )}
         </Card>
 
         <Card className="p-5">
-          <StepLabel n={2} title="Which role are you practicing for?" done={phase !== "choose"} />
+          <StepLabel n={2} title="Which role are you practicing for?" done={locked} />
           <div role="radiogroup" aria-label="Role" className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
             {ROLES.map((r) => (
-              <Choice key={r} selected={role === r} onSelect={() => phase === "choose" && setRole(r)}>
-                <span className="block text-[0.8125rem] font-medium">{r}</span>
+              <Choice key={r} selected={role === r} disabled={locked} onSelect={() => setRole(r)}>
+                <span className="block text-[0.8125rem] font-medium">{ROLE_LABEL[r]}</span>
                 <span className="mt-1 block font-mono text-[0.625rem] text-muted-foreground">{ROLE_HINT[r]}</span>
               </Choice>
             ))}
           </div>
-          <MonoLabel className="mt-5">Push harder on (optional)</MonoLabel>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {DIMENSIONS.map((d) => {
-              const on = focusDims.includes(d);
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  aria-pressed={on}
-                  disabled={phase !== "choose"}
-                  onClick={() => setFocusDims((f) => (on ? f.filter((x) => x !== d) : [...f, d]))}
-                  className={cn(
-                    "rounded-full border px-3 py-1 font-mono text-[0.6875rem] transition-colors",
-                    on ? "border-foreground bg-foreground text-background" : "border-black/10 text-muted-foreground hover:border-black/25 hover:text-foreground",
-                  )}
-                >
-                  {DIMENSION_LABEL[d]}
-                </button>
-              );
-            })}
-          </div>
         </Card>
 
         <Card className="p-5">
-          <StepLabel n={3} title="Your question plan" done={phase === "ready"} />
+          <StepLabel n={3} title="Your question plan" done={ready} />
           <AnimatePresence mode="wait" initial={false}>
-            {phase === "choose" && (
+            {!view ? (
               <motion.div key="choose" exit={{ opacity: 0 }} className="mt-4">
                 <p className="text-[0.8125rem] text-muted-foreground">
-                  We read <span className="font-mono text-foreground">{sourceLabel}</span>, pick the claims and code worth
+                  We read <span className="font-mono text-foreground">{selected?.fullName}</span>, pick the claims and code worth
                   asking about, and write five questions. Takes about twenty seconds.
                 </p>
-                <Button className="mt-4" onClick={prepare} disabled={needsUrl}>
-                  Prepare interview <ArrowRight />
+                <Button className="mt-4" onClick={prepare} disabled={creating || !selected}>
+                  {creating ? <Loader2 className="animate-spin" /> : null}
+                  {creating ? "Starting…" : "Prepare interview"} {!creating && <ArrowRight />}
                 </Button>
+                {error && <p className="mt-2 font-mono text-[0.6875rem] text-destructive">{error}</p>}
               </motion.div>
-            )}
-            {phase === "preparing" && (
-              <motion.ul key="prep" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-4 space-y-2.5">
-                {PREP_STEPS.map((s, i) => (
-                  <li key={s} className="flex items-center gap-2.5 font-mono text-[0.75rem]">
-                    <span className="grid size-4 place-items-center">
-                      {i < step ? (
-                        <Check className="size-3.5" />
-                      ) : i === step ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <span className="size-1.5 rounded-full bg-black/20" />
-                      )}
-                    </span>
-                    <span className={i <= step ? "text-foreground" : "text-muted-foreground"}>{s}</span>
-                  </li>
-                ))}
-              </motion.ul>
-            )}
-            {phase === "ready" && (
-              <motion.div key="ready" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="mt-4">
-                <p className="rounded-xl bg-black/[0.03] p-3 text-[0.8125rem] italic text-foreground/80">“{planPreview.opener}”</p>
-                <ol className="mt-3 divide-y divide-black/[0.05]">
-                  {planPreview.questions.map((q, i) => (
-                    <motion.li
-                      key={q.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.45, ease, delay: 0.08 * i }}
-                      className="grid grid-cols-[1.5rem_1fr] gap-2 py-3"
-                    >
-                      <span className="font-mono text-[0.6875rem] text-muted-foreground">0{i + 1}</span>
-                      <span>
-                        <span className="block text-[0.8125rem]">{q.ask}</span>
-                        <span className="mt-1.5 flex flex-wrap gap-1.5 font-mono text-[0.625rem] text-muted-foreground">
-                          <span className="rounded-md border border-black/[0.08] px-1.5 py-0.5">{q.cite}</span>
-                          <span className="rounded-md bg-black/[0.04] px-1.5 py-0.5">{DIMENSION_LABEL[q.dimension]}</span>
-                        </span>
-                      </span>
-                    </motion.li>
-                  ))}
-                </ol>
+            ) : (
+              <motion.div key="status" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <PlanStatus view={view} onRetry={reset} />
               </motion.div>
             )}
           </AnimatePresence>
         </Card>
       </div>
 
-      {/* Summary rail */}
       <div className="lg:sticky lg:top-10 lg:self-start">
         <Card className="p-5">
           <MonoLabel>Summary</MonoLabel>
           <dl className="mt-4 space-y-3 text-[0.8125rem]">
             {[
-              ["Source", sourceLabel],
-              ["Role", role],
-              ["Focus", focusDims.length ? focusDims.map((d) => DIMENSION_LABEL[d]).join(", ") : "Balanced"],
+              ["Repo", selected?.name ?? "—"],
+              ["Role", ROLE_LABEL[role]],
+              ["LinkedIn", candidate.linkedin ? "Included" : "Not added"],
               ["Length", "6 minutes, voice"],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4">
@@ -311,22 +273,22 @@ export function NewInterview({
             <Mic className="mb-1.5 size-3.5 text-foreground" />
             Uses your microphone. The call is recorded so you can replay it. Find a quiet spot.
           </div>
-          {phase === "ready" ? (
-            <Link href={`/interviews/${tab === "github" ? (url ? "custom" : repo) : "resume-nov"}/call`} className={buttonVariants({ className: "mt-5 w-full" })}>
-              Start the call <ArrowRight />
+          {ready ? (
+            <Link href={`/interviews/${interviewId}/call`} className={buttonVariants({ className: "mt-5 w-full" })}>
+              Go to the call <ArrowRight />
             </Link>
           ) : (
             <Button className="mt-5 w-full" disabled>
-              {phase === "preparing" ? "Preparing…" : "Prepare first"}
+              {view?.status === "preparing" ? "Preparing…" : "Prepare first"}
             </Button>
           )}
-          {phase === "ready" && (
+          {locked && view?.status !== "preparing" && (
             <button
               type="button"
-              onClick={() => setPhase("choose")}
+              onClick={reset}
               className="mt-3 inline-flex w-full items-center justify-center gap-1.5 font-mono text-[0.6875rem] text-muted-foreground hover:text-foreground"
             >
-              <ArrowLeft className="size-3" /> Change source or role
+              <ArrowLeft className="size-3" /> Change repo or role
             </button>
           )}
         </Card>

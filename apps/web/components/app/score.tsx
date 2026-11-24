@@ -1,6 +1,5 @@
-import { FileText, FileUser } from "lucide-react";
+import { FileUser } from "lucide-react";
 import { GithubIcon } from "@/components/logo";
-import type { SourceKind } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 
 /* Score out of 5 as a thin bar. Weak scores (<=2) get a hatched fill so they read without colour. */
@@ -78,9 +77,7 @@ export function Sparkline({ values, className }: { values: number[]; className?:
   );
 }
 
-export function SourceIcon({ kind, className }: { kind: SourceKind; className?: string }) {
+export function SourceIcon({ kind, className }: { kind: "github" | "linkedin"; className?: string }) {
   const c = cn("size-3.5", className);
-  if (kind === "github") return <GithubIcon className={c} />;
-  if (kind === "resume") return <FileText className={c} />;
-  return <FileUser className={c} />;
+  return kind === "github" ? <GithubIcon className={c} /> : <FileUser className={c} />;
 }

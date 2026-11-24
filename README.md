@@ -11,9 +11,9 @@ This is the only doc in the repo. It replaces `plan.md`, `architecture.md`, `fis
 | Area | State |
 | --- | --- |
 | Monorepo | Turborepo + Bun workspaces. `apps/docs` removed. |
-| `apps/web` | Landing, auth, and the full app UI (dashboard, new interview, call room, report, history, sources, settings) on mock data. |
-| `apps/api` | Express "Hello World" only. Nothing from the architecture below exists yet. |
-| Database, auth, voice | Not started. |
+| `apps/web` | Landing, auth (UI only), and the app wired to the API: sources (GitHub + LinkedIn screenshots), new interview, Fish call room, report, history, settings. No login yet: the browser remembers the candidate id. |
+| `apps/api` | Express 5 on Bun, port 4000. GitHub, LinkedIn screenshot, interview lifecycle, Fish voice, scoring. Not yet wired to the web app. |
+| Database | Prisma 7 + Neon schema written; run the first migration. Auth not started. |
 
 ### Done so far
 
@@ -50,6 +50,31 @@ cd apps/api && bun run index.ts                               # api
 Checks from `apps/web`: `bun run check-types`.
 
 ---
+
+## 2a. API (`apps/api`)
+
+```text
+index.ts            starts the server        app.ts         express wiring
+routes/             URL → controller         controllers/   read request, call service, send response
+services/           all the logic            middleware/    errors, validation, uploads
+lib/                env, prisma, github/xai/fish clients, prompts, state machine
+prisma/             schema + migrations      packages/contracts  Zod shapes shared with web
+```
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| POST | `/api/candidates` `{ github }` | Reads the GitHub user + repos (REST), saves the candidate |
+| GET | `/api/candidates/:id` | Candidate with GitHub and LinkedIn data |
+| POST | `/api/candidates/:id/linkedin` | Multipart `screenshots` (1–4 images) → Grok vision → LinkedIn profile |
+| GET | `/api/candidates/:id/interviews` | History list with scores |
+| POST | `/api/interviews` `{ candidateId, role, repo? }` | 202, prepares in the background (repo → fact sheet → plan) |
+| GET | `/api/interviews/:id` | Status + what that status allows (poll this) |
+| POST | `/api/interviews/:id/call` | Budget check, creates the Fish session, returns `{ session }` for `AgentSession.start` |
+| POST | `/api/interviews/:id/lines` `{ seq, speaker, text }` | Saves one final transcript line (idempotent) |
+| POST | `/api/interviews/:id/end` | Ends the call, pulls Fish history, scores. Safe to call twice |
+
+Setup: copy `apps/api/.env.example` to `apps/api/.env` and `apps/web/.env.example` to `apps/web/.env.local`, fill them, then `bun run db:migrate --name init`, then `bun run dev`. Tests: `bun test`.
+Fish agent: publish it, set `conversation.max_duration_seconds` to 360.
 
 ## 3. Product
 

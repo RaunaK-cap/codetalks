@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// One person being interviewed. GitHub is required; LinkedIn is optional.
+model Candidate {
+  id          String      @id @default(cuid())
+  githubLogin String      @unique
+  github      Json // GithubProfile: profile + repos, from the GitHub REST API
+  linkedin    Json? // LinkedinProfile: extracted from screenshots
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  interviews  Interview[]
+}
+
+// The interview aggregate. Only services/interview.service.ts writes `status`.
+model Interview {
+  id                String    @id @default(cuid())
+  candidateId       String
+  candidate         Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  role              String
+  repo              String // "owner/name" the interview is about
+  status            String // see lib/interview-machine.ts
+  step              String? // progress while preparing
+  factSheet         Json?
+  plan              Json?
+  providerSessionId String?
+  startedAt         DateTime?
+  endedAt           DateTime?
+  report            Json?
+  failure           Json? // { stage, reason }
+  clientIp          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lines             Line[]
+
+  @@index([candidateId, createdAt])
+  @@index([status, updatedAt])
+}
+
+// One transcript line. "live" lines come from the browser during the call,
+// "provider" lines from Fish history after it. Provider lines replace live ones.
+model Line {
+  id          String    @id @default(cuid())
+  interviewId String
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  origin      String // "live" | "provider"
+  seq         Int
+  speaker     String // "candidate" | "interviewer"
+  text        String
+  at          DateTime
+
+  @@unique([interviewId, origin, seq])
+}

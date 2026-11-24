@@ -1,11 +1,6 @@
-import express from "express";
+import { app } from "./app";
+import { env } from "./lib/env";
 
-const app = express();
-
-app.get("/", (req, res) => {
-  res.send("Hello World");
-});
-
-app.listen(3000, () => {
-  console.log("Server is running on port 3000");
+app.listen(env.PORT, () => {
+  console.log(`API listening on http://localhost:${env.PORT}`);
 });
