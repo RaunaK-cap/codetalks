@@ -8,7 +8,7 @@ import { prisma } from "../lib/prisma";
  * calls per IP per day, and total call minutes per day.
  */
 
-const MAX_CALL_MS = 6 * 60_000;
+const MAX_CALL_MS = 5 * 60_000;
 
 function startOfUtcDay(): Date {
   const d = new Date();

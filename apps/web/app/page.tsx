@@ -25,7 +25,7 @@ const STEPS = [
   {
     n: "02",
     title: "Take the call",
-    body: "Six minutes, voice only. The interviewer asks about your files and pushes on vague answers.",
+    body: "Five minutes, voice only. The interviewer asks about your files and pushes on vague answers.",
   },
   {
     n: "03",
@@ -37,7 +37,7 @@ const STEPS = [
 const IN_V1 = [
   "Public GitHub repos through the official API",
   "Resume PDF and LinkedIn “Save to PDF” export",
-  "A six-minute voice call in English",
+  "A five-minute voice call in English",
   "Transcript, five scores, and the gap in each answer",
 ];
 
@@ -192,7 +192,7 @@ export default function Home() {
             <div className="relative grid overflow-hidden rounded-[18px] border border-black/[0.07] bg-white md:grid-cols-2">
               <div className="relative z-10 p-7 sm:p-10">
                 <h2 className="text-[1.625rem] leading-[1.12] font-medium tracking-[-0.035em] sm:text-[2.125rem]">
-                  Six minutes.
+                  Five minutes.
                   <br />
                   Your code. Real questions.
                 </h2>

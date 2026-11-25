@@ -24,7 +24,7 @@ model Interview {
   candidateId       String
   candidate         Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   role              String
-  repo              String // "owner/name" the interview is about
+  repos             String[] // "owner/name" of each repo covered; one means a deep dive
   status            String // see lib/interview-machine.ts
   step              String? // progress while preparing
   factSheet         Json?

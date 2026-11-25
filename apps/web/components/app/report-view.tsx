@@ -10,7 +10,17 @@ import { Empty, ErrorNote, LoadingCards } from "@/components/app/states";
 import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, errorMessage } from "@/lib/api";
-import { DIMENSIONS, DIMENSION_LABEL, ROLE_LABEL, average, formatDate, formatDuration } from "@/lib/labels";
+import {
+  DIMENSIONS,
+  DIMENSION_LABEL,
+  ROLE_LABEL,
+  SCREEN_LABEL,
+  average,
+  formatDate,
+  formatDuration,
+  practiceAgainHref,
+  reposTitle,
+} from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 type Reported = Extract<InterviewView, { status: "reported" }>;
@@ -48,7 +58,17 @@ function FullReport({ view }: { view: Reported }) {
             {total.toFixed(1)}
             <span className="text-[1.25rem] text-muted-foreground">/5</span>
           </p>
-          <p className="mt-4 text-[0.8125rem] leading-relaxed text-muted-foreground">{report.overall}</p>
+          <span
+            className={cn(
+              "mt-4 inline-flex self-start rounded-full px-2.5 py-0.5 font-mono text-[0.6875rem]",
+              report.screen === "strong_yes" || report.screen === "yes"
+                ? "bg-foreground text-background"
+                : "border border-black/15 text-foreground",
+            )}
+          >
+            {SCREEN_LABEL[report.screen]}
+          </span>
+          <p className="mt-3 text-[0.8125rem] leading-relaxed text-muted-foreground">{report.overall}</p>
         </Card>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {DIMENSIONS.map((d) => {
@@ -65,6 +85,16 @@ function FullReport({ view }: { view: Reported }) {
               </Card>
             );
           })}
+          <Card className="col-span-2 grid gap-4 p-4 sm:col-span-5 sm:grid-cols-2">
+            <div>
+              <MonoLabel>Strongest moment</MonoLabel>
+              <p className="mt-1.5 text-[0.8125rem] leading-relaxed">{report.strongest}</p>
+            </div>
+            <div>
+              <MonoLabel>Weakest moment</MonoLabel>
+              <p className="mt-1.5 text-[0.8125rem] leading-relaxed">{report.weakest}</p>
+            </div>
+          </Card>
           <Card className="col-span-2 p-4 sm:col-span-5">
             <MonoLabel>Next time</MonoLabel>
             <ul className="mt-2 grid gap-1.5 sm:grid-cols-3">
@@ -101,9 +131,16 @@ function FullReport({ view }: { view: Reported }) {
                   <span>
                     <span className="text-foreground">Q{i + 1}</span> · {DIMENSION_LABEL[q.dimension]}
                   </span>
-                  <span>{result?.answered ? "Answered" : "Not answered"}</span>
+                  {result?.score ? (
+                    <span className="flex items-center gap-2">
+                      <ScorePips value={result.score} /> <span className="text-foreground tabular-nums">{result.score}/5</span>
+                    </span>
+                  ) : (
+                    <span>{result?.askedAs === null ? "Not asked" : "Not answered"}</span>
+                  )}
                 </div>
-                <h3 className="mt-3 text-[0.9375rem] font-medium tracking-[-0.01em]">{q.ask}</h3>
+                <h3 className="mt-3 text-[0.9375rem] font-medium tracking-[-0.01em]">{result?.askedAs ?? q.ask}</h3>
+                {result?.verdict && <p className="mt-2 text-[0.8125rem] leading-relaxed text-foreground/80">{result.verdict}</p>}
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div className="rounded-xl bg-black/[0.03] p-3.5">
                     <MonoLabel>You said</MonoLabel>
@@ -181,7 +218,7 @@ export function ReportView({ id }: { id: string }) {
   if (!view) return <LoadingCards count={2} />;
 
   const length = "startedAt" in view && "endedAt" in view ? formatDuration(view.startedAt, view.endedAt) : null;
-  const retest = `/interviews/new?repo=${encodeURIComponent(view.repo)}`;
+  const retest = practiceAgainHref(view.repos);
 
   return (
     <>
@@ -193,11 +230,12 @@ export function ReportView({ id }: { id: string }) {
         <div>
           <p className="flex items-center gap-2 font-mono text-[0.6875rem] text-muted-foreground">
             <SourceIcon kind="github" className="size-3" />
-            {view.repo} · {ROLE_LABEL[view.role]} · {formatDate(view.createdAt)}
+            {view.repos.length > 1 ? `${view.repos.length} projects` : view.repos[0]} · {ROLE_LABEL[view.role]} ·{" "}
+            {formatDate(view.createdAt)}
             {length && ` · ${length} min`}
           </p>
           <h1 className="mt-2 text-[1.5rem] leading-tight font-medium tracking-[-0.03em]">
-            Interview report: {view.repo.split("/")[1] ?? view.repo}
+            Interview report: {reposTitle(view.repos)}
           </h1>
         </div>
         <Link href={retest} className={buttonVariants({ shape: "soft" })}>

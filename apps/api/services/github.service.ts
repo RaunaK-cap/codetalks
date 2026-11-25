@@ -42,18 +42,34 @@ export async function loadGithubProfile(input: string): Promise<GithubProfile> {
   };
 }
 
-/* The repo to interview on: the one asked for, else the most recently pushed non-fork. */
-export function pickRepo(profile: GithubProfile, wanted?: string): GithubRepo {
-  const own = profile.repos.filter((r) => !r.isFork);
+export const LATEST_REPOS = 3;
+
+/*
+ * The repos an interview covers. With `wanted`, that one repo (a deep dive).
+ * Without it, the latest few non-fork repos, so questions span the candidate's projects.
+ */
+export function pickRepos(profile: GithubProfile, wanted?: string): GithubRepo[] {
   if (wanted) {
     const name = wanted.includes("/") ? wanted.split("/")[1] : wanted;
     const repo = profile.repos.find((r) => r.name.toLowerCase() === name?.toLowerCase());
     if (!repo) throw badRequest("unknown_repo", `"${wanted}" is not one of @${profile.login}'s public repos.`);
-    return repo;
+    return [repo];
   }
-  const repo = [...own].sort((a, b) => b.pushedAt.localeCompare(a.pushedAt))[0];
-  if (!repo) throw badRequest("no_repos", `@${profile.login} has no public repos of their own.`);
-  return repo;
+  const own = profile.repos
+    .filter((r) => !r.isFork)
+    .sort((a, b) => b.pushedAt.localeCompare(a.pushedAt))
+    .slice(0, LATEST_REPOS);
+  if (!own.length) throw badRequest("no_repos", `@${profile.login} has no public repos of their own.`);
+  return own;
+}
+
+/** Finds stored "owner/name" values again in a freshly read profile. */
+export function reposByName(profile: GithubProfile, fullNames: string[]): GithubRepo[] {
+  return fullNames.map((full) => {
+    const repo = profile.repos.find((r) => r.fullName.toLowerCase() === full.toLowerCase());
+    if (!repo) throw badRequest("unknown_repo", `${full} is no longer one of @${profile.login}'s public repos.`);
+    return repo;
+  });
 }
 
 /* ---------- Repo material for the fact sheet ---------- */
@@ -64,7 +80,6 @@ const SKIP_FILE = /(\.test\.|\.spec\.|\.d\.ts$|\.min\.|\.config\.|lock)/i;
 const PREFERRED_DIR = /^(src|app|lib|server|api|cmd|internal|pkg|core)\//i;
 const ENTRY = /(^|\/)(index|main|app|server|handler|router|routes|service|worker)\.[a-z]+$/i;
 
-const MAX_FILES = 3;
 const FILE_CHARS = 4_000;
 
 function scoreFile(path: string, size: number): number {
@@ -77,23 +92,25 @@ function scoreFile(path: string, size: number): number {
 }
 
 export type RepoMaterial = {
+  repo: GithubRepo;
   readme: string | null;
   languages: string[];
   files: { path: string; excerpt: string }[];
 };
 
-export async function loadRepoMaterial(repo: GithubRepo): Promise<RepoMaterial> {
+/** README and languages, plus the `codeFiles` most central source files (0 skips the file tree). */
+export async function loadRepoMaterial(repo: GithubRepo, codeFiles: number): Promise<RepoMaterial> {
   const [readme, languages, tree] = await Promise.all([
     github.getReadme(repo.fullName),
     github.getLanguages(repo.fullName),
-    github.getTree(repo.fullName, repo.defaultBranch),
+    codeFiles > 0 ? github.getTree(repo.fullName, repo.defaultBranch) : Promise.resolve([]),
   ]);
 
   const candidates = tree
     .filter((e) => e.type === "blob" && e.size !== undefined && e.size > 300 && e.size < 60_000)
     .filter((e) => CODE_EXT.test(e.path) && !SKIP.test(e.path) && !SKIP_FILE.test(e.path))
     .sort((a, b) => scoreFile(b.path, b.size ?? 0) - scoreFile(a.path, a.size ?? 0))
-    .slice(0, MAX_FILES);
+    .slice(0, codeFiles);
 
   const files = await Promise.all(
     candidates.map(async (e) => {
@@ -103,6 +120,7 @@ export async function loadRepoMaterial(repo: GithubRepo): Promise<RepoMaterial> 
   );
 
   return {
+    repo,
     readme,
     languages: Object.keys(languages),
     files: files.filter((f) => f !== null),

@@ -10,7 +10,7 @@ import { ConnectFirst, Empty, ErrorNote, LoadingCards, Skeleton } from "@/compon
 import { buttonVariants } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api";
 import { useCandidate } from "@/lib/candidate";
-import { DIMENSIONS, DIMENSION_LABEL, average } from "@/lib/labels";
+import { DIMENSIONS, DIMENSION_LABEL, average, practiceAgainHref } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 type Scored = InterviewSummary & { scores: NonNullable<InterviewSummary["scores"]> };
@@ -50,7 +50,7 @@ function NextFocus({ latest }: { latest: Scored | undefined }) {
             ))}
           </ol>
           <div className="mt-6 flex flex-wrap gap-2 lg:mt-auto lg:pt-6">
-            <Link href={`/interviews/new?repo=${encodeURIComponent(latest.repo)}`} className={buttonVariants({ size: "sm" })}>
+            <Link href={practiceAgainHref(latest.repos)} className={buttonVariants({ size: "sm" })}>
               <RotateCcw /> Practice again
             </Link>
             <Link href={`/interviews/${latest.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
@@ -204,7 +204,7 @@ export function DashboardView() {
   if (!candidate) {
     return (
       <>
-        <PageHeader title="Welcome to CodeTalk" description="Connect GitHub, then take a six-minute voice interview." />
+        <PageHeader title="Welcome to CodeTalk" description="Connect GitHub, then take a five-minute voice interview." />
         <ConnectFirst />
       </>
     );

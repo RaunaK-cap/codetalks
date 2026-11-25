@@ -8,11 +8,11 @@ import { AgentSession, type AgentMode } from "@fishaudio/agent-client";
 import { ArrowRight, Check, Loader2, Mic, MicOff, PhoneOff } from "lucide-react";
 import type { Line, Speaker } from "@repo/contracts";
 import { Halftone } from "@/components/halftone";
-import { Waveform } from "@/components/landing/waveform";
+import { VoiceOrbs, type Levels } from "@/components/app/voice-orbs";
 import { LogoMark } from "@/components/logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api";
-import { ROLE_LABEL } from "@/lib/labels";
+import { ROLE_LABEL, reposTitle } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 /*
@@ -22,9 +22,9 @@ import { cn } from "@/lib/utils";
  */
 
 const ease = [0.16, 1, 0.3, 1] as const;
-const LIMIT = 360;
-const WARN_AT = 270;
-const AUTO_END_AT = 330;
+const LIMIT = 300;
+const WARN_AT = 240;
+const AUTO_END_AT = 285; // end a little before Fish's 300s cap so the last answer is saved
 
 type Phase = "lobby" | "connecting" | "live" | "ending" | "scoring" | "done" | "interrupted";
 
@@ -44,6 +44,7 @@ export function CallRoom({ id }: { id: string }) {
   const [interim, setInterim] = useState<{ speaker: Speaker; text: string } | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [silent, setSilent] = useState(false);
 
   const session = useRef<AgentSession | null>(null);
   const seq = useRef(0);
@@ -58,6 +59,11 @@ export function CallRoom({ id }: { id: string }) {
     else if (view.status === "finishing") setPhase("scoring");
     else setPhase("done");
   }, [view, phase]);
+
+  const readLevels = useCallback((): Levels | null => {
+    const s = session.current;
+    return s ? { ai: s.getOutputVolume(), you: s.getInputVolume() } : null;
+  }, []);
 
   const saveLine = useCallback(
     (speaker: Speaker, text: string) => {
@@ -175,9 +181,8 @@ export function CallRoom({ id }: { id: string }) {
 
   const plan = "plan" in view ? view.plan : null;
   const lastInterviewer = [...lines].reverse().find((l) => l.speaker === "interviewer")?.text ?? plan?.opener ?? "";
-  const speaking = mode === "speaking";
   const warn = phase === "live" && elapsed >= WARN_AT;
-  const repoName = view.repo.split("/")[1] ?? view.repo;
+  const title = reposTitle(view.repos);
 
   return (
     <div className="flex h-dvh flex-col bg-white">
@@ -188,7 +193,7 @@ export function CallRoom({ id }: { id: string }) {
           </Link>
           <span className="h-4 w-px bg-black/10" />
           <p className="truncate font-mono text-[0.75rem]">
-            {repoName} <span className="text-muted-foreground">· {ROLE_LABEL[view.role]}</span>
+            {title} <span className="text-muted-foreground">· {ROLE_LABEL[view.role]}</span>
           </p>
         </div>
         <span
@@ -216,41 +221,40 @@ export function CallRoom({ id }: { id: string }) {
           />
 
           <div className="relative flex flex-col items-center">
-            <div className="relative grid size-32 place-items-center sm:size-40">
-              <motion.span
-                aria-hidden
-                className="absolute inset-0 rounded-full bg-foreground/[0.06]"
-                animate={!reduce && phase === "live" && speaking ? { scale: [1, 1.12, 1] } : { scale: 1 }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <span className="relative grid size-24 place-items-center rounded-full bg-foreground text-background shadow-[0_20px_50px_-20px_oklch(0_0_0/50%)] sm:size-28">
-                {phase === "live" ? (
-                  <Waveform bars={14} className="h-8 [&>span]:bg-white" />
-                ) : phase === "connecting" || phase === "ending" ? (
-                  <Loader2 className="size-7 animate-spin" />
+            <VoiceOrbs
+              readLevels={readLevels}
+              live={phase === "live"}
+              mode={mode}
+              muted={muted}
+              onSilenceChange={setSilent}
+              aiCenter={
+                phase === "connecting" || phase === "ending" ? (
+                  <Loader2 className="size-6 animate-spin" />
                 ) : phase === "lobby" ? (
-                  <Mic className="size-7" />
+                  <Mic className="size-6" />
                 ) : (
-                  <Check className="size-7" />
-                )}
-              </span>
-            </div>
-            <p className="mt-5 font-mono text-[0.75rem] text-muted-foreground" aria-live="polite">
-              {phase === "lobby" && "Ready when you are"}
-              {phase === "connecting" && "Connecting…"}
-              {phase === "live" && (muted ? "You are muted" : mode === "speaking" ? "Interviewer is speaking" : mode === "thinking" ? "Thinking…" : "Listening to you")}
-              {phase === "ending" && "Ending the call…"}
-              {(phase === "scoring" || phase === "done" || phase === "interrupted") && "Call ended"}
-            </p>
+                  <Check className="size-6" />
+                )
+              }
+            />
+            {phase !== "live" && (
+              <p className="mt-4 font-mono text-[0.75rem] text-muted-foreground" aria-live="polite">
+                {phase === "lobby" && "Ready when you are"}
+                {phase === "connecting" && "Connecting…"}
+                {phase === "ending" && "Ending the call…"}
+                {(phase === "scoring" || phase === "done" || phase === "interrupted") && "Call ended"}
+              </p>
+            )}
           </div>
 
           <div className="glass relative mt-8 w-full max-w-xl rounded-2xl p-1.5">
             <div className="rounded-[12px] bg-white/75 p-4 sm:p-5">
               {phase === "lobby" && plan ? (
                 <>
-                  <p className="font-mono text-[0.6875rem] text-muted-foreground">{plan.questions.length} questions · about 6 minutes</p>
+                  <p className="font-mono text-[0.6875rem] text-muted-foreground">{plan.questions.length} questions · about 5 minutes</p>
                   <p className="mt-3 text-[1rem] leading-snug font-medium">
-                    The interviewer will ask about {repoName}. Speak naturally; you can pause and think.
+                    The interviewer will ask about {view.repos.length > 1 ? "your recent projects" : title}. Speak naturally; you can
+                    pause and think.
                   </p>
                 </>
               ) : phase === "interrupted" ? (
@@ -315,7 +319,12 @@ export function CallRoom({ id }: { id: string }) {
               </Link>
             )}
           </div>
-          {warn && <p className="relative mt-3 font-mono text-[0.6875rem] text-destructive">About a minute left. The call ends at 5:30.</p>}
+          {warn && <p className="relative mt-3 font-mono text-[0.6875rem] text-destructive">About a minute left. The call ends at 4:45.</p>}
+          {phase === "live" && silent && !muted && (
+            <p role="alert" className="relative mt-3 font-mono text-[0.6875rem] text-destructive">
+              We can't hear you. Check that the right microphone is selected and not muted.
+            </p>
+          )}
           {error && (
             <p role="alert" className="relative mt-3 max-w-md text-center font-mono text-[0.6875rem] text-destructive">
               {error}

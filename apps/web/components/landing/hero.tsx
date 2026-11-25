@@ -41,7 +41,7 @@ function CallCard() {
   useEffect(() => {
     if (reduce) return;
     const tick = setInterval(
-      () => setSeconds((s) => (s >= 359 ? 0 : s + 1)),
+      () => setSeconds((s) => (s >= 299 ? 0 : s + 1)),
       1000,
     );
     const swap = setInterval(
@@ -68,7 +68,7 @@ function CallCard() {
             Live interview
           </span>
           <span className="text-muted-foreground tabular-nums">
-            {fmt(seconds)} / 06:00
+            {fmt(seconds)} / 05:00
           </span>
         </div>
 
@@ -162,7 +162,7 @@ export function Hero() {
             {...item(0.16)}
             className="mx-auto mt-4 max-w-md text-[0.875rem] leading-relaxed text-white/90 [text-shadow:0_1px_12px_oklch(0.3_0.1_250/40%)]"
           >
-            CodeTalk reads your GitHub and resume, then runs a six-minute voice
+            CodeTalk reads your GitHub and resume, then runs a five-minute voice
             interview about your own files. You get a transcript and a report
             with receipts.
           </motion.p>

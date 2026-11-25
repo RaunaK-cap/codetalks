@@ -21,7 +21,7 @@ import { assertMove } from "../lib/interview-machine";
 import { prisma } from "../lib/prisma";
 import { interviewerPrompt } from "../lib/prompts";
 import { assertCallBudget } from "./budget.service";
-import { loadRepoMaterial, pickRepo } from "./github.service";
+import { loadRepoMaterial, pickRepos, reposByName } from "./github.service";
 import { buildFactSheet, writePlan } from "./prep.service";
 import { scoreInterview } from "./scoring.service";
 import { voice } from "./voice.service";
@@ -33,7 +33,7 @@ import { voice } from "./voice.service";
 
 const STALE_PREPARE_MS = 3 * 60_000;
 const STALE_FINISH_MS = 3 * 60_000;
-const MAX_LIVE_MS = 7 * 60_000;
+const MAX_LIVE_MS = 6 * 60_000; // calls are 5 minutes; past 6 the browser is gone
 
 /* ---------- Views: what the page is allowed to see per status ---------- */
 
@@ -59,7 +59,7 @@ export async function toView(row: Interview): Promise<InterviewView> {
     candidateId: row.candidateId,
     status,
     role: row.role as Role,
-    repo: row.repo,
+    repos: row.repos,
     createdAt: row.createdAt.toISOString(),
   };
   const plan = row.plan ? Plan.parse(row.plan) : null;
@@ -123,15 +123,15 @@ export async function createInterview(input: { candidateId: string; role: Role; 
 
   // An interview only starts from a GitHub profile we have already read.
   const github = GithubProfile.parse(candidate.github);
-  const repo = pickRepo(github, input.repo);
+  const repos = pickRepos(github, input.repo);
 
   const row = await prisma.interview.create({
     data: {
       candidateId: candidate.id,
       role: input.role,
-      repo: repo.fullName,
+      repos: repos.map((r) => r.fullName),
       status: "preparing",
-      step: "reading_repo",
+      step: "reading_repos",
       clientIp: input.ip,
     },
   });
@@ -149,14 +149,18 @@ async function prepare(id: string): Promise<void> {
     const row = await prisma.interview.findUniqueOrThrow({ where: { id }, include: { candidate: true } });
     const github = GithubProfile.parse(row.candidate.github);
     const linkedin = row.candidate.linkedin ? LinkedinProfile.parse(row.candidate.linkedin) : null;
-    const repo = pickRepo(github, row.repo);
+    const repos = reposByName(github, row.repos);
     const role = row.role as Role;
 
-    const material = await loadRepoMaterial(repo);
+    // Code files only from the newest repo when covering several, to keep GitHub calls and tokens bounded.
+    const deepDive = repos.length === 1;
+    const materials = await Promise.all(
+      repos.map((r, i) => loadRepoMaterial(r, deepDive ? 3 : i === 0 ? 2 : 0)),
+    );
     await setStep(id, "building_fact_sheet");
-    const factSheet = await buildFactSheet({ role, github, repo, material, linkedin });
+    const factSheet = await buildFactSheet({ role, github, materials, linkedin });
     await setStep(id, "writing_plan");
-    const plan = await writePlan({ role, repo, factSheet });
+    const plan = await writePlan({ role, repos: row.repos, factSheet });
 
     await move(id, "preparing", "ready", { factSheet, plan, step: null });
   } catch (error) {
@@ -181,11 +185,11 @@ export async function startCall(id: string, ip: string): Promise<StartCallRespon
   const { sessionId, clientToken } = await voice.start({
     interviewId: id,
     candidateId: row.candidateId,
-    title: `${github.login} · ${row.repo}`,
+    title: `${github.login} · ${row.repos.map((r) => r.split("/")[1]).join(", ")}`,
     systemPrompt: interviewerPrompt({
       role: row.role as Role,
       candidateName: github.name ?? github.login,
-      repo: row.repo,
+      repos: row.repos,
       plan,
     }),
     firstMessage: plan.opener,
@@ -302,7 +306,7 @@ export async function listInterviews(candidateId: string): Promise<InterviewSumm
     id: r.id,
     status: r.status as InterviewStatus,
     role: r.role as Role,
-    repo: r.repo,
+    repos: r.repos,
     createdAt: r.createdAt.toISOString(),
     startedAt: r.startedAt?.toISOString() ?? null,
     endedAt: r.endedAt?.toISOString() ?? null,

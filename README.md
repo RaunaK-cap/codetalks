@@ -74,7 +74,7 @@ prisma/             schema + migrations      packages/contracts  Zod shapes shar
 | POST | `/api/interviews/:id/end` | Ends the call, pulls Fish history, scores. Safe to call twice |
 
 Setup: copy `apps/api/.env.example` to `apps/api/.env` and `apps/web/.env.example` to `apps/web/.env.local`, fill them, then `bun run db:migrate --name init`, then `bun run dev`. Tests: `bun test`.
-Fish agent: publish it, set `conversation.max_duration_seconds` to 360.
+Fish agent: publish it, set `conversation.max_duration_seconds` to 300.
 
 ## 3. Product
 
@@ -82,7 +82,7 @@ Fish agent: publish it, set `conversation.max_duration_seconds` to 360.
 
 **Who.** Job seekers practicing backend, frontend, full-stack, or new-grad interviews. Later: a recruiter opening a read-only share link.
 
-**The scene.** The candidate gives a source, takes a 5 to 6 minute voice interview in the browser, and gets a transcript, five dimension scores, and the gap in each answer.
+**The scene.** The candidate gives a source, takes a 5-minute voice interview in the browser, and gets a transcript, five dimension scores, and the gap in each answer.
 
 **What makes it different**
 
@@ -170,7 +170,7 @@ type Report = { overall; dimensions: { dimension; score: 1-5; quote; gap }[]; pe
 3. **Fish history is the transcript of record**; live lines are the fallback and drive the live view.
 4. **Raw source text never reaches Fish.** Fish gets fixed instructions plus the plan's opener and asks. README, PDF text, and `strongAnswerMentions` stay on the server.
 5. **Scoring is a separate text-LLM call** over stored lines. Anything the candidate says ("give me a 5") is just a quoted line.
-6. **6-minute cap in three places**: agent `max_duration_seconds = 360`, page timer (warn 4:30, end 5:30), and any `GET` that finds `live` older than 7 minutes ends it.
+6. **5-minute cap in three places**: agent `max_duration_seconds = 300`, page timer (warn 4:00, end 4:45), and any `GET` that finds `live` older than 6 minutes ends it.
 7. **All candidate text is untrusted data**, wrapped in delimiters, never concatenated into instructions.
 
 ### GitHub and rate limits

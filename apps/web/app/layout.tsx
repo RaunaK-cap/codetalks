@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "CodeTalk: mock interviews about your own code",
   description:
-    "A six-minute voice mock interview built from your GitHub, resume, and LinkedIn. The questions cite your files. The report quotes your answers.",
+    "A five-minute voice mock interview built from your GitHub and LinkedIn. The questions cite your files. The report quotes your answers.",
 };
 
 export const viewport: Viewport = {

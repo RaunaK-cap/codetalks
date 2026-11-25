@@ -96,6 +96,7 @@ export const Fact = z.object({
   claim: z.string(),
   evidence: z.string(),
   source: z.enum(["github", "readme", "code", "linkedin"]),
+  repo: z.string().nullable(),
 });
 export type Fact = z.infer<typeof Fact>;
 
@@ -121,8 +122,14 @@ export const Plan = z.object({
 });
 export type Plan = z.infer<typeof Plan>;
 
+export const ScreenVerdict = z.enum(["strong_yes", "yes", "maybe", "not_yet"]);
+export type ScreenVerdict = z.infer<typeof ScreenVerdict>;
+
 export const Report = z.object({
   overall: z.string(),
+  screen: ScreenVerdict,
+  strongest: z.string(),
+  weakest: z.string(),
   scores: z.array(
     z.object({
       dimension: Dimension,
@@ -134,7 +141,10 @@ export const Report = z.object({
   perQuestion: z.array(
     z.object({
       questionId: z.string(),
+      askedAs: z.string().nullable(),
       answered: z.boolean(),
+      score: z.number().int().min(1).max(5).nullable(),
+      verdict: z.string(),
       quote: z.string().nullable(),
       missing: z.array(z.string()),
     }),
@@ -156,6 +166,7 @@ export const ConnectGithubBody = z.object({
   github: z.string().min(1).max(200),
 });
 
+/** Without `repo`, the interview covers the candidate's latest projects. With it, one repo in depth. */
 export const CreateInterviewBody = z.object({
   candidateId: z.string().min(1),
   role: Role,
@@ -177,7 +188,7 @@ export const InterviewStatus = z.enum([
 ]);
 export type InterviewStatus = z.infer<typeof InterviewStatus>;
 
-export const PrepareStep = z.enum(["reading_repo", "building_fact_sheet", "writing_plan"]);
+export const PrepareStep = z.enum(["reading_repos", "building_fact_sheet", "writing_plan"]);
 export type PrepareStep = z.infer<typeof PrepareStep>;
 
 /* Responses, as the API sends them */
@@ -201,7 +212,8 @@ type ViewBase = {
   id: string;
   candidateId: string;
   role: Role;
-  repo: string;
+  /** "owner/name" of each repo the interview covers. One repo means a deep dive. */
+  repos: string[];
   createdAt: string;
 };
 
@@ -219,7 +231,7 @@ export type InterviewSummary = {
   id: string;
   status: InterviewStatus;
   role: Role;
-  repo: string;
+  repos: string[];
   createdAt: string;
   startedAt: string | null;
   endedAt: string | null;

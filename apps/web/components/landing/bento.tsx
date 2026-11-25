@@ -217,7 +217,7 @@ function Transcript() {
   );
 }
 
-/* 5. Six minutes: the plan, with a ring that tracks the current segment. */
+/* 5. Five minutes: the plan, with a ring that tracks the current segment. */
 const PLAN = ["Warm-up", "Your claim", "Your code", "Design", "Wrap"];
 
 function Clock() {
@@ -243,7 +243,7 @@ function Clock() {
           />
         </svg>
         <span className="absolute inset-0 grid place-items-center font-mono text-[0.6875rem] tabular-nums">
-          {Math.round(progress * 6)}:00
+          {Math.round(progress * 5)}:00
         </span>
       </div>
       <ul className="space-y-1 font-mono text-[0.6875rem]">
@@ -380,7 +380,7 @@ export function Bento() {
       <Tile
         className="lg:col-span-2"
         icon={<Timer />}
-        title="Six focused minutes"
+        title="Five focused minutes"
         body="A plan built for you, paced like a real screen."
       >
         <Clock />

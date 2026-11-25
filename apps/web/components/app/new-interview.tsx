@@ -16,7 +16,8 @@ import { cn } from "@/lib/utils";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const SHOWN = 6;
-const STEPS = ["reading_repo", "building_fact_sheet", "writing_plan"] as const;
+const STEPS = ["reading_repos", "building_fact_sheet", "writing_plan"] as const;
+const LATEST = 3;
 
 function Choice({
   selected,
@@ -137,6 +138,7 @@ function PlanStatus({ view, onRetry }: { view: InterviewView; onRetry: () => voi
 
 export function NewInterview({ initialRepo }: { initialRepo?: string }) {
   const { candidate, isLoading } = useCandidate();
+  const [mode, setMode] = useState<"latest" | "one">(initialRepo ? "one" : "latest");
   const [repo, setRepo] = useState<string | null>(initialRepo ?? null);
   const [role, setRole] = useState<Role>("backend");
   const [showAll, setShowAll] = useState(false);
@@ -155,6 +157,9 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
     .filter((r) => !r.isFork)
     .sort((a, b) => b.pushedAt.localeCompare(a.pushedAt));
   const selected: GithubRepo | undefined = repos.find((r) => r.fullName === repo) ?? repos[0];
+  const latest = repos.slice(0, LATEST);
+  const covered = mode === "latest" ? latest : selected ? [selected] : [];
+  const coveredLabel = covered.map((r) => r.name).join(", ");
   const locked = interviewId !== null;
   const ready = view?.status === "ready";
 
@@ -163,7 +168,11 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
     setCreating(true);
     setError(null);
     try {
-      const created = await api.createInterview({ candidateId: candidate.id, role, repo: selected.fullName });
+      const created = await api.createInterview({
+        candidateId: candidate.id,
+        role,
+        repo: mode === "one" ? selected.fullName : undefined,
+      });
       setInterviewId(created.id);
     } catch (e) {
       setError(errorMessage(e));
@@ -192,28 +201,83 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
     <div className="mt-8 grid gap-3 lg:grid-cols-[1fr_20rem]">
       <div className="grid gap-3">
         <Card className="p-5">
-          <StepLabel n={1} title="Which repo should we interview you on?" done={locked} />
-          <div role="radiogroup" aria-label="Repository" className="mt-4 grid gap-2 sm:grid-cols-2">
-            {(showAll ? repos : repos.slice(0, SHOWN)).map((r) => (
-              <Choice key={r.fullName} selected={selected?.fullName === r.fullName} disabled={locked} onSelect={() => setRepo(r.fullName)}>
-                <span className="block truncate pr-6 text-[0.8125rem] font-medium">{r.name}</span>
-                <span className="mt-1 line-clamp-1 block text-[0.75rem] text-muted-foreground">
-                  {r.description ?? "No description"}
-                </span>
-                <span className="mt-2.5 flex items-center gap-2 font-mono text-[0.625rem] text-muted-foreground">
-                  {r.language ?? "—"} · <Star className="size-2.5" /> {r.stars} · {formatDate(r.pushedAt)}
-                </span>
-              </Choice>
+          <StepLabel n={1} title="What should the interview cover?" done={locked} />
+          <div role="radiogroup" aria-label="Interview scope" className="mt-4 inline-flex rounded-full bg-black/[0.04] p-1">
+            {(
+              [
+                ["latest", "Latest projects"],
+                ["one", "One repo, in depth"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={mode === value}
+                disabled={locked}
+                onClick={() => setMode(value)}
+                className={cn(
+                  "rounded-full px-3.5 py-1.5 font-mono text-[0.6875rem] transition-colors disabled:cursor-not-allowed",
+                  mode === value ? "bg-white text-foreground shadow-[0_1px_2px_oklch(0_0_0/8%)]" : "text-muted-foreground",
+                )}
+              >
+                {label}
+              </button>
             ))}
           </div>
-          {repos.length > SHOWN && !locked && (
-            <button
-              type="button"
-              onClick={() => setShowAll((v) => !v)}
-              className="mt-3 font-mono text-[0.6875rem] text-muted-foreground underline decoration-black/20 underline-offset-4 hover:text-foreground"
-            >
-              {showAll ? "Show fewer" : `Show all ${repos.length}`}
-            </button>
+
+          {mode === "latest" ? (
+            <>
+              <p className="mt-4 text-[0.8125rem] text-muted-foreground">
+                Your profile plus your {latest.length} most recently pushed repos. Questions span all of them.
+              </p>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+                {latest.map((r) => (
+                  <li key={r.fullName} className="rounded-xl border border-black/[0.08] bg-white p-3.5">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[0.8125rem] font-medium">{r.name}</span>
+                      <Check className="size-3.5 shrink-0 text-muted-foreground" />
+                    </span>
+                    <span className="mt-1 line-clamp-2 block text-[0.75rem] text-muted-foreground">
+                      {r.description ?? "No description"}
+                    </span>
+                    <span className="mt-2.5 block font-mono text-[0.625rem] text-muted-foreground">
+                      {r.language ?? "—"} · {formatDate(r.pushedAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <>
+              <div role="radiogroup" aria-label="Repository" className="mt-4 grid gap-2 sm:grid-cols-2">
+                {(showAll ? repos : repos.slice(0, SHOWN)).map((r) => (
+                  <Choice
+                    key={r.fullName}
+                    selected={selected?.fullName === r.fullName}
+                    disabled={locked}
+                    onSelect={() => setRepo(r.fullName)}
+                  >
+                    <span className="block truncate pr-6 text-[0.8125rem] font-medium">{r.name}</span>
+                    <span className="mt-1 line-clamp-1 block text-[0.75rem] text-muted-foreground">
+                      {r.description ?? "No description"}
+                    </span>
+                    <span className="mt-2.5 flex items-center gap-2 font-mono text-[0.625rem] text-muted-foreground">
+                      {r.language ?? "—"} · <Star className="size-2.5" /> {r.stars} · {formatDate(r.pushedAt)}
+                    </span>
+                  </Choice>
+                ))}
+              </div>
+              {repos.length > SHOWN && !locked && (
+                <button
+                  type="button"
+                  onClick={() => setShowAll((v) => !v)}
+                  className="mt-3 font-mono text-[0.6875rem] text-muted-foreground underline decoration-black/20 underline-offset-4 hover:text-foreground"
+                >
+                  {showAll ? "Show fewer" : `Show all ${repos.length}`}
+                </button>
+              )}
+            </>
           )}
         </Card>
 
@@ -235,8 +299,8 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
             {!view ? (
               <motion.div key="choose" exit={{ opacity: 0 }} className="mt-4">
                 <p className="text-[0.8125rem] text-muted-foreground">
-                  We read <span className="font-mono text-foreground">{selected?.fullName}</span>, pick the claims and code worth
-                  asking about, and write five questions. Takes about twenty seconds.
+                  We read your profile and <span className="font-mono text-foreground">{coveredLabel}</span>, pick the claims and
+                  code worth asking about, and write five questions. Takes about twenty seconds.
                 </p>
                 <Button className="mt-4" onClick={prepare} disabled={creating || !selected}>
                   {creating ? <Loader2 className="animate-spin" /> : null}
@@ -258,10 +322,10 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
           <MonoLabel>Summary</MonoLabel>
           <dl className="mt-4 space-y-3 text-[0.8125rem]">
             {[
-              ["Repo", selected?.name ?? "—"],
+              [mode === "latest" ? "Projects" : "Repo", coveredLabel || "—"],
               ["Role", ROLE_LABEL[role]],
               ["LinkedIn", candidate.linkedin ? "Included" : "Not added"],
-              ["Length", "6 minutes, voice"],
+              ["Length", "5 minutes, voice"],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4">
                 <dt className="font-mono text-[0.6875rem] text-muted-foreground">{k}</dt>
@@ -288,7 +352,7 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
               onClick={reset}
               className="mt-3 inline-flex w-full items-center justify-center gap-1.5 font-mono text-[0.6875rem] text-muted-foreground hover:text-foreground"
             >
-              <ArrowLeft className="size-3" /> Change repo or role
+              <ArrowLeft className="size-3" /> Change projects or role
             </button>
           )}
         </Card>

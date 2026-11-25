@@ -22,7 +22,7 @@ const COPY = {
   },
   signup: {
     title: "Create account",
-    sub: "Your first interview takes six minutes",
+    sub: "Your first interview takes five minutes",
     submit: "Create account",
     switchText: "Already have an account?",
     switchCta: "Sign in instead",

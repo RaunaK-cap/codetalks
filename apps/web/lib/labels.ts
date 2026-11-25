@@ -1,4 +1,4 @@
-import type { Dimension, InterviewStatus, PrepareStep, Role } from "@repo/contracts";
+import type { Dimension, InterviewStatus, PrepareStep, Role, ScreenVerdict } from "@repo/contracts";
 
 export const DIMENSIONS: Dimension[] = ["depth", "correctness", "ownership", "communication", "tradeoffs"];
 
@@ -37,7 +37,7 @@ export const STATUS_LABEL: Record<InterviewStatus, string> = {
 };
 
 export const STEP_LABEL: Record<PrepareStep, string> = {
-  reading_repo: "Reading your repo",
+  reading_repos: "Reading your GitHub",
   building_fact_sheet: "Building the fact sheet",
   writing_plan: "Writing the question plan",
 };
@@ -55,4 +55,24 @@ export function formatDuration(startIso: string | null, endIso: string | null): 
   if (!startIso || !endIso) return null;
   const sec = Math.max(0, Math.round((Date.parse(endIso) - Date.parse(startIso)) / 1000));
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+}
+
+export const SCREEN_LABEL: Record<ScreenVerdict, string> = {
+  strong_yes: "Strong pass",
+  yes: "Would pass",
+  maybe: "Borderline",
+  not_yet: "Not yet",
+};
+
+export const repoName = (fullName: string) => fullName.split("/")[1] ?? fullName;
+
+/** "ledger-sync" for a deep dive, "ledger-sync, pixel-board +1" for several. */
+export function reposTitle(repos: string[]): string {
+  const names = repos.map(repoName);
+  return names.length <= 2 ? names.join(", ") : `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
+}
+
+/** Same setup again: the deep-dive repo if there was one, otherwise latest projects. */
+export function practiceAgainHref(repos: string[]): string {
+  return repos.length === 1 ? `/interviews/new?repo=${encodeURIComponent(repos[0]!)}` : "/interviews/new";
 }

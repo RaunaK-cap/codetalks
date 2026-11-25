@@ -12,7 +12,17 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, errorMessage } from "@/lib/api";
 import { useCandidate } from "@/lib/candidate";
-import { DIMENSIONS, DIMENSION_LABEL, ROLES, ROLE_LABEL, STATUS_LABEL, average, formatDate, formatDuration } from "@/lib/labels";
+import {
+  DIMENSIONS,
+  DIMENSION_LABEL,
+  ROLES,
+  ROLE_LABEL,
+  STATUS_LABEL,
+  average,
+  formatDate,
+  formatDuration,
+  reposTitle,
+} from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 const ROLE_ITEMS = [{ value: "all", label: "All roles" }, ...ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }))];
@@ -32,9 +42,9 @@ function Row({ i }: { i: InterviewSummary }) {
           <SourceIcon kind="github" />
         </span>
         <span className="min-w-0">
-          <span className="block truncate text-[0.8125rem] font-medium">{i.repo.split("/")[1] ?? i.repo}</span>
+          <span className="block truncate text-[0.8125rem] font-medium">{reposTitle(i.repos)}</span>
           <span className="block truncate font-mono text-[0.6875rem] text-muted-foreground">
-            {i.repo}
+            {i.repos.length > 1 ? `${i.repos.length} latest projects` : i.repos[0]}
             <span className="md:hidden">
               {" "}
               · {ROLE_LABEL[i.role]} · {formatDate(i.createdAt)}
@@ -93,7 +103,8 @@ export function HistoryList() {
   const rows = useMemo(
     () =>
       (list.data ?? []).filter(
-        (i) => (role === "all" || i.role === role) && i.repo.toLowerCase().includes(query.trim().toLowerCase()),
+        (i) => (role === "all" || i.role === role) &&
+          i.repos.join(" ").toLowerCase().includes(query.trim().toLowerCase()),
       ),
     [list.data, query, role],
   );
