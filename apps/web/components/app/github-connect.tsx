@@ -16,8 +16,8 @@ const SHOWN = 8;
 
 function StatusPill({ on }: { on: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-black/[0.08] px-2 py-0.5 font-mono text-[0.625rem] text-muted-foreground">
-      <span className={on ? "size-1.5 rounded-full bg-live" : "size-1.5 rounded-full border border-black/30"} />
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-foreground/[0.08] px-2 py-0.5 font-mono text-[0.625rem] text-muted-foreground">
+      <span className={on ? "size-1.5 rounded-full bg-live" : "size-1.5 rounded-full border border-foreground/30"} />
       {on ? "Connected" : "Not connected"}
     </span>
   );
@@ -105,7 +105,7 @@ export function GithubConnect({
         </form>
       ) : (
         <div className="p-5">
-          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-black/[0.07] p-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-foreground/[0.07] p-3">
             <Avatar className="size-10">
               <AvatarImage src={gh.avatarUrl} alt="" />
               <AvatarFallback>{gh.login.slice(0, 1).toUpperCase()}</AvatarFallback>
@@ -130,7 +130,7 @@ export function GithubConnect({
             <>
               <ul className="mt-2 grid gap-2 sm:grid-cols-2">
                 {(showAll ? repos : repos.slice(0, SHOWN)).map((r) => (
-                  <li key={r.fullName} className="rounded-xl border border-black/[0.07] p-3.5">
+                  <li key={r.fullName} className="rounded-xl border border-foreground/[0.07] p-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <a
                         href={r.url}
@@ -159,7 +159,7 @@ export function GithubConnect({
                 <button
                   type="button"
                   onClick={() => setShowAll((v) => !v)}
-                  className="mt-3 font-mono text-[0.6875rem] text-muted-foreground underline decoration-black/20 underline-offset-4 hover:text-foreground"
+                  className="mt-3 font-mono text-[0.6875rem] text-muted-foreground underline decoration-foreground/20 underline-offset-4 hover:text-foreground"
                 >
                   {showAll ? "Show fewer" : `Show all ${repos.length}`}
                 </button>

@@ -47,15 +47,15 @@ function Tile({
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.7, ease }}
       className={cn(
-        "group flex flex-col rounded-[18px] border border-black/[0.07] bg-white p-1.5 shadow-[0_1px_2px_oklch(0_0_0/4%)]",
+        "group flex flex-col rounded-[18px] border border-foreground/[0.07] bg-card p-1.5 shadow-[0_1px_2px_oklch(0_0_0/4%)]",
         className,
       )}
     >
-      <div className="relative h-[196px] overflow-hidden rounded-[13px] border border-black/[0.05] bg-neutral-50 transition-transform duration-500 ease-out group-hover:-translate-y-0.5">
+      <div className="relative h-[196px] overflow-hidden rounded-[13px] border border-foreground/[0.05] bg-muted transition-transform duration-500 ease-out group-hover:-translate-y-0.5">
         {children}
       </div>
       <div className="flex gap-3 p-3.5 pt-4">
-        <span className="grid size-7 shrink-0 place-items-center rounded-lg border border-black/[0.08] bg-white text-foreground/80 [&_svg]:size-3.5">
+        <span className="grid size-7 shrink-0 place-items-center rounded-lg border border-foreground/[0.08] bg-card text-foreground/80 [&_svg]:size-3.5">
           {icon}
         </span>
         <div>
@@ -87,7 +87,7 @@ function RepoScan() {
   return (
     <div ref={ref} className="absolute inset-0 p-4">
       <div className="flex items-center gap-2 font-mono text-[0.625rem] text-muted-foreground">
-        <span className="rounded border border-black/8 bg-white px-1.5 py-0.5">src/sync.ts</span>
+        <span className="rounded border border-foreground/8 bg-card px-1.5 py-0.5">src/sync.ts</span>
         <span>reading · 3 of 41 files</span>
       </div>
       <div className="relative mt-3 font-mono text-[0.6875rem] leading-[18px]">
@@ -95,14 +95,14 @@ function RepoScan() {
           aria-hidden
           className={cn(
             "absolute -inset-x-2 h-[18px] rounded-[5px] transition-colors duration-300",
-            flagged ? "bg-live/12 ring-1 ring-live/30" : "bg-black/[0.05]",
+            flagged ? "bg-live/12 ring-1 ring-live/30" : "bg-foreground/[0.05]",
           )}
           animate={{ y: line * 18 }}
           transition={{ duration: 0.55, ease }}
         />
         {CODE.map((l, i) => (
           <div key={i} className="relative flex gap-3 whitespace-pre text-foreground/75">
-            <span className="w-4 text-right text-black/25 select-none">{i + 36}</span>
+            <span className="w-4 text-right text-foreground/25 select-none">{i + 36}</span>
             <span>{l}</span>
           </div>
         ))}
@@ -156,7 +156,7 @@ function ClaimCheck() {
   const { ref, step } = useLoop(3, 1500);
   return (
     <div ref={ref} className="absolute inset-0 flex flex-col justify-center gap-3 p-5">
-      <div className="rounded-xl border border-black/8 bg-white p-3">
+      <div className="rounded-xl border border-foreground/8 bg-card p-3">
         <p className="font-mono text-[0.625rem] text-muted-foreground">README.md</p>
         <p className="relative mt-1 inline-block text-[0.8125rem] font-medium text-foreground">
           “Real-time sync across devices”
@@ -197,14 +197,14 @@ function Transcript() {
           <motion.div
             key={l.t}
             layout
-            initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.45, ease }}
             className={cn(
               "max-w-[88%] rounded-xl px-3 py-1.5 text-[0.75rem]",
               l.who === "AI"
-                ? "self-start border border-black/8 bg-white text-foreground"
+                ? "self-start border border-foreground/8 bg-card text-foreground"
                 : "self-end bg-foreground text-background",
             )}
           >
@@ -252,7 +252,7 @@ function Clock() {
             key={p}
             className={cn(
               "flex items-center gap-2 transition-colors duration-300",
-              i === step ? "text-foreground" : i < step ? "text-black/35" : "text-black/25",
+              i === step ? "text-foreground" : i < step ? "text-foreground/35" : "text-foreground/25",
             )}
           >
             <span
@@ -286,7 +286,7 @@ function Report() {
         {SCORES.map((s, i) => (
           <li key={s.name} className="grid grid-cols-[6.5rem_1fr_1.5rem] items-center gap-3">
             <span className="font-mono text-[0.6875rem] text-muted-foreground">{s.name}</span>
-            <span className="h-1.5 overflow-hidden rounded-full bg-black/[0.06]">
+            <span className="h-1.5 overflow-hidden rounded-full bg-foreground/[0.06]">
               <motion.span
                 className="block h-full origin-left rounded-full bg-foreground"
                 initial={{ scaleX: 0 }}
@@ -298,7 +298,7 @@ function Report() {
           </li>
         ))}
       </ul>
-      <div className="hidden w-44 self-center rounded-xl border border-black/8 bg-white p-3 sm:block">
+      <div className="hidden w-44 self-center rounded-xl border border-foreground/8 bg-card p-3 sm:block">
         <p className="font-mono text-[0.625rem] text-muted-foreground">Ownership · gap</p>
         <p className="mt-1 text-[0.75rem] leading-snug text-foreground">
           Resume says “led”. The answer said “the team decided, I think”.
@@ -324,12 +324,12 @@ function Private() {
         return (
           <div
             key={p}
-            className="flex items-center gap-2.5 rounded-xl border border-black/8 bg-white px-3 py-2"
+            className="flex items-center gap-2.5 rounded-xl border border-foreground/8 bg-card px-3 py-2"
           >
             <span
               className={cn(
                 "grid size-4 shrink-0 place-items-center rounded-full transition-colors duration-300",
-                on ? "bg-foreground text-background" : "border border-black/15 text-transparent",
+                on ? "bg-foreground text-background" : "border border-foreground/15 text-transparent",
               )}
             >
               <Check className="size-2.5" strokeWidth={3} />

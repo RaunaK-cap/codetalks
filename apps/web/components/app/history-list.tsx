@@ -35,10 +35,10 @@ function Row({ i }: { i: InterviewSummary }) {
   return (
     <Link
       href={href}
-      className="group grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-black/[0.02] md:grid-cols-[1fr_6rem_9rem_4.5rem_4.5rem_5rem_1rem]"
+      className="group grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-foreground/[0.02] md:grid-cols-[1fr_6rem_9rem_4.5rem_4.5rem_5rem_1rem]"
     >
       <span className="flex min-w-0 items-center gap-3">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-black/[0.08]">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-foreground/[0.08]">
           <SourceIcon kind="github" />
         </span>
         <span className="min-w-0">
@@ -61,7 +61,7 @@ function Row({ i }: { i: InterviewSummary }) {
               <span
                 key={d}
                 title={`${DIMENSION_LABEL[d]} ${v}/5`}
-                className="flex h-4 w-1.5 items-end overflow-hidden rounded-full bg-black/[0.06]"
+                className="flex h-4 w-1.5 items-end overflow-hidden rounded-full bg-foreground/[0.06]"
               >
                 <span className="w-full rounded-full bg-foreground" style={{ height: `${(v / 5) * 100}%` }} />
               </span>
@@ -82,7 +82,7 @@ function Row({ i }: { i: InterviewSummary }) {
               "rounded-full border px-2 py-0.5 font-mono text-[0.625rem]",
               i.status === "failed" || i.status === "report_failed"
                 ? "border-destructive/30 text-destructive"
-                : "border-black/[0.1] text-muted-foreground",
+                : "border-foreground/[0.1] text-muted-foreground",
             )}
           >
             {STATUS_LABEL[i.status]}
@@ -128,7 +128,7 @@ export function HistoryList() {
     <>
       <div className="mt-8 flex flex-col gap-2 sm:flex-row">
         <div className="relative sm:w-72">
-          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-3.5 -translate-y-1/2 text-black/35" />
+          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-3.5 -translate-y-1/2 text-foreground/35" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -140,7 +140,7 @@ export function HistoryList() {
         <Select items={ROLE_ITEMS} value={role} onValueChange={(v) => setRole(v as string)}>
           <SelectTrigger
             aria-label="Filter by role"
-            className="h-9 w-full rounded-full border-black/10 bg-white px-4 font-mono text-[0.75rem] sm:w-40"
+            className="h-9 w-full rounded-full border-foreground/10 bg-card px-4 font-mono text-[0.75rem] sm:w-40"
           >
             <SelectValue />
           </SelectTrigger>
@@ -155,7 +155,7 @@ export function HistoryList() {
       </div>
 
       <Card className="mt-3 overflow-hidden">
-        <div className="hidden grid-cols-[1fr_6rem_9rem_4.5rem_4.5rem_5rem_1rem] gap-4 border-b border-black/[0.06] px-5 py-3 font-mono text-[0.625rem] text-muted-foreground uppercase md:grid">
+        <div className="hidden grid-cols-[1fr_6rem_9rem_4.5rem_4.5rem_5rem_1rem] gap-4 border-b border-foreground/[0.06] px-5 py-3 font-mono text-[0.625rem] text-muted-foreground uppercase md:grid">
           <span>Interview</span>
           <span>Role</span>
           <span>Dimensions</span>
@@ -167,7 +167,7 @@ export function HistoryList() {
         {rows.length === 0 ? (
           <p className="px-5 py-12 text-center font-mono text-[0.75rem] text-muted-foreground">No interviews match that.</p>
         ) : (
-          <ul className="divide-y divide-black/[0.05]">
+          <ul className="divide-y divide-foreground/[0.05]">
             {rows.map((i) => (
               <li key={i.id}>
                 <Row i={i} />

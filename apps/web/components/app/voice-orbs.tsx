@@ -59,7 +59,7 @@ function Orb({
             "relative grid size-20 place-items-center rounded-full sm:size-24",
             dark
               ? "bg-foreground text-background shadow-[0_20px_50px_-20px_oklch(0_0_0/50%)]"
-              : "border border-black/10 bg-white text-foreground shadow-[0_12px_32px_-16px_oklch(0_0_0/25%)]",
+              : "border border-foreground/10 bg-card text-foreground shadow-[0_12px_32px_-16px_oklch(0_0_0/25%)]",
           )}
           style={{ transform: "scale(calc(1 + var(--lvl) * 0.12))", transition: "transform 80ms linear" }}
         >
@@ -68,7 +68,7 @@ function Orb({
               {BARS.map((weight, i) => (
                 <span
                   key={i}
-                  className={cn("w-[3px] rounded-full", dark ? "bg-white" : "bg-foreground")}
+                  className={cn("w-[3px] rounded-full", dark ? "bg-card" : "bg-foreground")}
                   style={{
                     height: `calc(4px + var(--lvl) * ${Math.round(weight * 24)}px)`,
                     transition: "height 80ms linear",

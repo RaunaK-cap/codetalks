@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthForm, type AuthMode } from "@/components/auth/auth-form";
 import { Halftone } from "@/components/halftone";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export const metadata: Metadata = {
   title: "Sign in · CodeTalk",
@@ -15,7 +16,8 @@ export default async function AuthPage({
   const initial: AuthMode = mode === "signup" ? "signup" : "signin";
 
   return (
-    <div className="flex min-h-dvh bg-background">
+    <div className="relative flex min-h-dvh bg-background">
+      <ModeToggle className="absolute top-4 right-4 z-10 bg-background/70 backdrop-blur" />
       <div className="flex w-full flex-1">
         <div className="grid w-full flex-1 overflow-hidden md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
           {/* On phones the halftone becomes a short banner above the form. */}

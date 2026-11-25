@@ -63,7 +63,7 @@ function FullReport({ view }: { view: Reported }) {
               "mt-4 inline-flex self-start rounded-full px-2.5 py-0.5 font-mono text-[0.6875rem]",
               report.screen === "strong_yes" || report.screen === "yes"
                 ? "bg-foreground text-background"
-                : "border border-black/15 text-foreground",
+                : "border border-foreground/15 text-foreground",
             )}
           >
             {SCREEN_LABEL[report.screen]}
@@ -110,7 +110,7 @@ function FullReport({ view }: { view: Reported }) {
       </div>
 
       <Tabs defaultValue="questions" className="mt-8">
-        <TabsList className="h-9 rounded-full bg-black/[0.04] p-1">
+        <TabsList className="h-9 rounded-full bg-foreground/[0.04] p-1">
           <TabsTrigger value="questions" className="rounded-full px-3.5 font-mono text-[0.6875rem]">
             Questions ({plan.questions.length})
           </TabsTrigger>
@@ -142,17 +142,17 @@ function FullReport({ view }: { view: Reported }) {
                 <h3 className="mt-3 text-[0.9375rem] font-medium tracking-[-0.01em]">{result?.askedAs ?? q.ask}</h3>
                 {result?.verdict && <p className="mt-2 text-[0.8125rem] leading-relaxed text-foreground/80">{result.verdict}</p>}
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-xl bg-black/[0.03] p-3.5">
+                  <div className="rounded-xl bg-foreground/[0.03] p-3.5">
                     <MonoLabel>You said</MonoLabel>
                     <p className="mt-1.5 text-[0.8125rem] leading-relaxed">
                       {result?.quote ? `“${result.quote}”` : <span className="text-muted-foreground">Nothing on this question.</span>}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-black/[0.07] p-3.5">
+                  <div className="rounded-xl border border-foreground/[0.07] p-3.5">
                     <MonoLabel>A strong answer mentions</MonoLabel>
                     <ul className="mt-2 flex flex-wrap gap-1.5">
                       {q.strongAnswerMentions.map((m) => (
-                        <li key={m} className="rounded-full border border-black/[0.08] px-2.5 py-0.5 font-mono text-[0.6875rem]">
+                        <li key={m} className="rounded-full border border-foreground/[0.08] px-2.5 py-0.5 font-mono text-[0.6875rem]">
                           {m}
                         </li>
                       ))}

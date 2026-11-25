@@ -95,7 +95,7 @@ function WeakestArea({ scored }: { scored: Scored[] }) {
         <ul className="mt-2 flex items-end gap-2" aria-label={`${DIMENSION_LABEL[weak!]} over time`}>
           {history.map((h) => (
             <li key={h.id} className="flex flex-1 flex-col items-center gap-1.5">
-              <span className="flex h-12 w-full items-end overflow-hidden rounded-md bg-black/[0.04]">
+              <span className="flex h-12 w-full items-end overflow-hidden rounded-md bg-foreground/[0.04]">
                 <span
                   className="w-full rounded-md bg-foreground"
                   style={{ height: `${(scoreOf(h, weak!) / 5) * 100}%` }}
@@ -166,13 +166,13 @@ function Sources({ login, repos, linkedin }: { login: string; repos: number; lin
           </Link>
         }
       />
-      <ul className="mt-3 divide-y divide-black/[0.05] px-5 pb-2">
+      <ul className="mt-3 divide-y divide-foreground/[0.05] px-5 pb-2">
         {[
           { kind: "github" as const, name: "GitHub", meta: `@${login} · ${repos} repos`, on: true },
           { kind: "linkedin" as const, name: "LinkedIn", meta: linkedin ? "Profile read" : "Optional: add screenshots", on: linkedin },
         ].map((s) => (
           <li key={s.name} className="flex items-center gap-3 py-3">
-            <span className="grid size-8 place-items-center rounded-lg border border-black/[0.08]">
+            <span className="grid size-8 place-items-center rounded-lg border border-foreground/[0.08]">
               <SourceIcon kind={s.kind} />
             </span>
             <span className="min-w-0 flex-1">

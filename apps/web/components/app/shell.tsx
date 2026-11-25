@@ -4,13 +4,23 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { ChevronsUpDown, FolderGit2, History, House, LogOut, Plus, Settings } from "lucide-react";
+import {
+  ChevronsUpDown,
+  FolderGit2,
+  History,
+  House,
+  LogOut,
+  Plus,
+  Settings,
+} from "lucide-react";
 import { Logo } from "@/components/logo";
+import { ModeToggle } from "@/components/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -28,14 +38,16 @@ const NAV = [
 ];
 
 function isActive(pathname: string, href: string) {
-  if (href === "/history") return pathname === "/history" || /^\/interviews\/(?!new)/.test(pathname);
+  if (href === "/history")
+    return pathname === "/history" || /^\/interviews\/(?!new)/.test(pathname);
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function UserMenu({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const { user, candidate, mutate } = useMe();
-  const name = user?.name || candidate?.github.name || candidate?.github.login || "";
+  const name =
+    user?.name || candidate?.github.name || candidate?.github.login || "";
   const image = user?.image ?? candidate?.github.avatarUrl;
   const handle = user?.username ? `@${user.username}` : (user?.email ?? "");
 
@@ -49,7 +61,7 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "flex items-center gap-2.5 rounded-xl text-left transition-colors outline-none hover:bg-black/[0.04] focus-visible:ring-4 focus-visible:ring-black/10",
+          "flex items-center gap-2.5 rounded-xl text-left transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:ring-4 focus-visible:ring-foreground/10",
           compact ? "p-1" : "w-full p-2",
         )}
       >
@@ -62,15 +74,27 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
         {!compact && (
           <>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[0.8125rem] font-medium">{name || "…"}</span>
-              <span className="block truncate font-mono text-[0.625rem] text-muted-foreground">{handle}</span>
+              <span className="block truncate text-[0.8125rem] font-medium">
+                {name || "…"}
+              </span>
+              <span className="block truncate font-mono text-[0.625rem] text-muted-foreground">
+                {handle}
+              </span>
             </span>
             <ChevronsUpDown className="size-3.5 text-muted-foreground" />
           </>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={compact ? "end" : "start"} side={compact ? "bottom" : "top"} className="w-56">
-        <DropdownMenuLabel className="truncate font-mono text-[0.6875rem]">{user?.email ?? "Signed in"}</DropdownMenuLabel>
+      <DropdownMenuContent
+        align={compact ? "end" : "start"}
+        side={compact ? "bottom" : "top"}
+        className="w-56"
+      >
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="truncate font-mono text-[0.6875rem]">
+            {user?.email ?? "Signed in"}
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/settings" />}>
           <Settings /> Settings
@@ -91,15 +115,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-dvh bg-[oklch(0.985_0_0)] lg:grid lg:grid-cols-[15rem_1fr]">
+    <div className="min-h-dvh bg-muted lg:grid lg:grid-cols-[15rem_1fr]">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-black/[0.06] bg-white px-3 py-4 lg:flex">
+      <aside className="sticky top-0 hidden h-dvh flex-col border-r border-foreground/[0.06] bg-card px-3 py-4 lg:flex">
         <div className="px-2 py-1">
           <Logo />
         </div>
         <Link
           href="/interviews/new"
-          className={buttonVariants({ className: "mt-6 w-full justify-start", shape: "soft" })}
+          className={buttonVariants({
+            className: "mt-6 w-full justify-start",
+            shape: "soft",
+          })}
         >
           <Plus /> New interview
         </Link>
@@ -112,8 +139,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                   {active && (
                     <motion.span
                       layoutId="nav-active"
-                      className="absolute inset-0 rounded-lg bg-black/[0.05]"
-                      transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                      className="absolute inset-0 rounded-lg bg-foreground/[0.05]"
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 40,
+                      }}
                     />
                   )}
                   <Link
@@ -121,7 +152,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                     aria-current={active ? "page" : undefined}
                     className={cn(
                       "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 font-mono text-[0.75rem] transition-colors",
-                      active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                      active
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
                     )}
                   >
                     <Icon className="size-3.5" />
@@ -132,15 +165,21 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </ul>
         </nav>
-        <div className="mt-auto">
-          <UserMenu />
+        <div className="mt-auto flex items-center gap-1">
+          <div className="min-w-0 flex-1">
+            <UserMenu />
+          </div>
+          <ModeToggle />
         </div>
       </aside>
 
       {/* Mobile top bar */}
-      <header className="glass sticky top-0 z-40 flex h-14 items-center justify-between bg-white/85 px-4 lg:hidden">
+      <header className="glass sticky top-0 z-40 flex h-14 items-center justify-between bg-card/85 px-4 lg:hidden">
         <Logo />
-        <UserMenu compact />
+        <div className="flex items-center gap-1">
+          <ModeToggle />
+          <UserMenu compact />
+        </div>
       </header>
 
       <main className="min-w-0 px-4 pt-6 pb-28 sm:px-8 lg:pt-10 lg:pb-16">
@@ -150,37 +189,41 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Mobile bottom tabs */}
       <nav
         aria-label="App"
-        className="glass fixed inset-x-3 bottom-3 z-40 rounded-2xl bg-white/85 lg:hidden"
+        className="glass fixed inset-x-3 bottom-3 z-40 rounded-2xl bg-card/85 lg:hidden"
       >
         <ul className="grid grid-cols-5">
-          {[NAV[0]!, NAV[1]!, { href: "/interviews/new", label: "New", icon: Plus }, NAV[2]!, NAV[3]!].map(
-            ({ href, label, icon: Icon }) => {
-              const active = isActive(pathname, href);
-              const isNew = href === "/interviews/new";
-              return (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    aria-current={active ? "page" : undefined}
+          {[
+            NAV[0]!,
+            NAV[1]!,
+            { href: "/interviews/new", label: "New", icon: Plus },
+            NAV[2]!,
+            NAV[3]!,
+          ].map(({ href, label, icon: Icon }) => {
+            const active = isActive(pathname, href);
+            const isNew = href === "/interviews/new";
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex flex-col items-center gap-1 py-2.5 font-mono text-[0.625rem]",
+                    active ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  <span
                     className={cn(
-                      "flex flex-col items-center gap-1 py-2.5 font-mono text-[0.625rem]",
-                      active ? "text-foreground" : "text-muted-foreground",
+                      "grid place-items-center rounded-full",
+                      isNew ? "size-7 bg-foreground text-background" : "size-5",
                     )}
                   >
-                    <span
-                      className={cn(
-                        "grid place-items-center rounded-full",
-                        isNew ? "size-7 bg-foreground text-background" : "size-5",
-                      )}
-                    >
-                      <Icon className="size-3.5" />
-                    </span>
-                    {!isNew && label}
-                  </Link>
-                </li>
-              );
-            },
-          )}
+                    <Icon className="size-3.5" />
+                  </span>
+                  {!isNew && label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </div>

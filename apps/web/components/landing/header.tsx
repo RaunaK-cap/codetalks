@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
+import { ModeToggle } from "@/components/mode-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +29,7 @@ export function Header() {
       <div
         className={cn(
           "mx-auto mt-3 flex h-12 max-w-6xl items-center justify-between rounded-[14px] px-3 transition-[background-color,box-shadow,backdrop-filter] duration-300 sm:px-4",
-          scrolled ? "glass bg-white/80" : "bg-transparent",
+          scrolled ? "glass bg-background/80" : "bg-transparent",
         )}
       >
         <Logo />
@@ -41,7 +42,7 @@ export function Header() {
                   className={cn(
                     "rounded-full px-3 py-1.5 font-mono text-[0.75rem] transition-colors",
                     scrolled
-                      ? "text-foreground/70 hover:bg-black/[0.04] hover:text-foreground"
+                      ? "text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground"
                       : "text-white/90 hover:bg-white/15 hover:text-white",
                   )}
                 >
@@ -52,6 +53,13 @@ export function Header() {
           </ul>
         </nav>
         <div className="flex items-center gap-1.5">
+          <ModeToggle
+            className={
+              scrolled
+                ? undefined
+                : "text-white/90 hover:bg-white/15 hover:text-white"
+            }
+          />
           <Link
             href="/auth"
             className={buttonVariants({

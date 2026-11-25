@@ -78,7 +78,7 @@ export default function Home() {
         <Hero />
 
         {/* Sources strip, in place of the reference's "Trusted by" logos. */}
-        <section className="border-y border-black/[0.06] px-5 py-7">
+        <section className="border-y border-foreground/[0.06] px-5 py-7">
           <p className="text-center font-mono text-[0.6875rem] text-muted-foreground">
             Built from what you already have
           </p>
@@ -123,7 +123,7 @@ export default function Home() {
             {STEPS.map((s, i) => (
               <li key={s.n}>
                 <Reveal delay={i * 0.08} className="h-full">
-                  <div className="flex h-full flex-col rounded-[18px] border border-black/[0.07] bg-white p-5 shadow-[0_1px_2px_oklch(0_0_0/4%)]">
+                  <div className="flex h-full flex-col rounded-[18px] border border-foreground/[0.07] bg-card p-5 shadow-[0_1px_2px_oklch(0_0_0/4%)]">
                     <span className="font-mono text-[0.6875rem] text-muted-foreground">
                       {s.n}
                     </span>
@@ -156,7 +156,7 @@ export default function Home() {
             ].map((col) => (
               <div
                 key={col.title}
-                className="rounded-[18px] border border-black/[0.07] bg-white p-5"
+                className="rounded-[18px] border border-foreground/[0.07] bg-card p-5"
               >
                 <p className="font-mono text-[0.6875rem] text-muted-foreground">
                   {col.title}
@@ -168,7 +168,7 @@ export default function Home() {
                         className={
                           col.on
                             ? "mt-[0.45rem] size-1.5 shrink-0 rounded-full bg-live"
-                            : "mt-[0.45rem] size-1.5 shrink-0 rounded-full border border-black/25"
+                            : "mt-[0.45rem] size-1.5 shrink-0 rounded-full border border-foreground/25"
                         }
                       />
                       <span
@@ -189,7 +189,7 @@ export default function Home() {
         {/* CTA panel echoing the auth screen: text left, halftone right. */}
         <section className="mx-auto max-w-6xl px-3 pb-3 sm:px-5 sm:pb-5">
           <Reveal>
-            <div className="relative grid overflow-hidden rounded-[18px] border border-black/[0.07] bg-white md:grid-cols-2">
+            <div className="relative grid overflow-hidden rounded-[18px] border border-foreground/[0.07] bg-card md:grid-cols-2">
               <div className="relative z-10 p-7 sm:p-10">
                 <h2 className="text-[1.625rem] leading-[1.12] font-medium tracking-[-0.035em] sm:text-[2.125rem]">
                   Five minutes.

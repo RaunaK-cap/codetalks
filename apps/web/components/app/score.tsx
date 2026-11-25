@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 /* Score out of 5 as a thin bar. Weak scores (<=2) get a hatched fill so they read without colour. */
 export function ScoreBar({ value, className }: { value: number; className?: string }) {
   return (
-    <span className={cn("block h-1.5 overflow-hidden rounded-full bg-black/[0.06]", className)}>
+    <span className={cn("block h-1.5 overflow-hidden rounded-full bg-foreground/[0.06]", className)}>
       <span
         className={cn(
           "block h-full rounded-full",
@@ -26,7 +26,7 @@ export function ScorePips({ value }: { value: number }) {
       {[1, 2, 3, 4, 5].map((n) => (
         <span
           key={n}
-          className={cn("size-1.5 rounded-full", n <= value ? "bg-foreground" : "bg-black/[0.1]")}
+          className={cn("size-1.5 rounded-full", n <= value ? "bg-foreground" : "bg-foreground/[0.1]")}
         />
       ))}
     </span>

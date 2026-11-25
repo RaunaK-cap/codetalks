@@ -7,7 +7,11 @@ import { cn } from "@/lib/utils";
  * Animated halftone: a grid of diamond dots whose size follows a field.
  *   "voice"  a dithered sound wave that breathes, for the landing hero.
  *   "cloud"  an organic mass drifting in from the right, for auth and CTA panels.
- * Pauses offscreen and in hidden tabs. Reduced motion draws one still frame.
+ *
+ * Performance: the expensive noise is computed once per resize and cached per dot.
+ * Each frame only evaluates cheap terms (one exp or one sin per dot), at 24fps (voice) or 8fps (cloud),
+ * and the loop pauses offscreen and in hidden tabs. Reduced motion draws one frame.
+ * Dot colour follows the theme (the canvas's CSS `color`).
  */
 
 type Variant = "voice" | "cloud";
@@ -16,8 +20,13 @@ type Props = {
   variant: Variant;
   cell?: number;
   className?: string;
-  ink?: string;
 };
+
+// The voice wave moves quickly; the cloud drifts slowly, so it needs far fewer frames.
+const FRAME_MS: Record<Variant, number> = { voice: 1000 / 24, cloud: 1000 / 8 };
+
+/* Dot sizes are quantised into this many levels, each pre-drawn once into a sprite sheet. */
+const LEVELS = 12;
 
 function hash(x: number, y: number) {
   const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
@@ -39,7 +48,11 @@ function noise(x: number, y: number) {
 }
 
 function fbm(x: number, y: number) {
-  return noise(x, y) * 0.55 + noise(x * 2.1, y * 2.1) * 0.3 + noise(x * 4.3, y * 4.3) * 0.15;
+  return (
+    noise(x, y) * 0.55 +
+    noise(x * 2.1, y * 2.1) * 0.3 +
+    noise(x * 4.3, y * 4.3) * 0.15
+  );
 }
 
 function smoothstep(e0: number, e1: number, x: number) {
@@ -47,29 +60,64 @@ function smoothstep(e0: number, e1: number, x: number) {
   return t * t * (3 - 2 * t);
 }
 
-/* x and y are 0..1 across the canvas; aspect is width / height. */
-function voice(x: number, y: number, t: number, aspect: number) {
-  const center =
-    0.5 +
-    0.1 * Math.sin(x * 5.2 + t * 0.7) +
-    0.05 * Math.sin(x * 12.7 - t * 1.4);
-  const envelope = 0.35 + 0.65 * Math.pow(Math.abs(Math.sin(x * 2.4 + t * 0.45)), 1.4);
-  const spread = (0.06 + 0.16 * envelope) * Math.min(1, 1.6 / aspect + 0.4);
-  const d = (y - center) / spread;
-  const band = Math.exp(-d * d);
-  const grain = fbm(x * 9 + t * 0.3, y * 6) * 0.55 + 0.45;
-  const edge = smoothstep(0, 0.12, x) * smoothstep(1, 0.88, x);
-  return band * grain * edge;
+/* Per-dot data that only changes on resize. */
+type Grid = {
+  count: number;
+  cols: number;
+  x: Float32Array; // pixel position
+  y: Float32Array;
+  col: Uint16Array; // column index (voice: per-column wave)
+  ny: Float32Array; // 0..1 vertical position
+  base: Float32Array; // cached static noise
+  phase: Float32Array; // cloud: swirl phase
+};
+
+function buildGrid(
+  variant: Variant,
+  width: number,
+  height: number,
+  cell: number,
+): Grid {
+  const cols = Math.ceil(width / cell) + 1;
+  const rows = Math.ceil(height / cell) + 1;
+  const count = cols * rows;
+  const g: Grid = {
+    count,
+    cols,
+    x: new Float32Array(count),
+    y: new Float32Array(count),
+    col: new Uint16Array(count),
+    ny: new Float32Array(count),
+    base: new Float32Array(count),
+    phase: new Float32Array(count),
+  };
+  const aspect = width / Math.max(1, height);
+
+  let k = 0;
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++, k++) {
+      const px = i * cell + (j % 2 ? cell / 2 : 0);
+      const py = j * cell;
+      const nx = px / width;
+      const ny = py / height;
+      g.x[k] = px;
+      g.y[k] = py;
+      g.col[k] = i;
+      g.ny[k] = ny;
+      if (variant === "voice") {
+        g.base[k] = fbm(nx * 9, ny * 6) * 0.55 + 0.45; // grain
+      } else {
+        const n = fbm(nx * 2.2 * aspect * 0.6, ny * 2.2);
+        const bias = smoothstep(0.05, 0.85, nx) * 0.55 + 0.1;
+        g.base[k] = n * 0.9 + bias * 0.55;
+        g.phase[k] = ny * 7 + nx * 3;
+      }
+    }
+  }
+  return g;
 }
 
-function cloud(x: number, y: number, t: number, aspect: number) {
-  const n = fbm(x * 2.2 * aspect * 0.6 + t * 0.04, y * 2.2 - t * 0.03);
-  const bias = smoothstep(0.05, 0.85, x) * 0.55 + 0.1;
-  const swirl = 0.12 * Math.sin(y * 7 + x * 3 + t * 0.25);
-  return smoothstep(0.42, 0.78, n * 0.9 + bias * 0.55 + swirl);
-}
-
-export function Halftone({ variant, cell = 8, className, ink = "17, 17, 17" }: Props) {
+export function Halftone({ variant, cell = 8, className }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -78,10 +126,43 @@ export function Halftone({ variant, cell = 8, className, ink = "17, 17, 17" }: P
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const field = variant === "voice" ? voice : cloud;
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     let width = 0;
     let height = 0;
+    let grid: Grid | null = null;
+    let center = new Float32Array(0);
+    let spread = new Float32Array(0);
+    let edge = new Float32Array(0);
+    let ink = getComputedStyle(canvas).color;
+    let dpr = 1;
+    let size = 1; // sprite cell, in device pixels
+    const atlas = document.createElement("canvas");
+    const actx = atlas.getContext("2d");
+
+    // One diamond per size level, drawn once. Stamping sprites is far cheaper than
+    // filling a single path with thousands of sub-shapes every frame.
+    const buildAtlas = () => {
+      if (!actx) return;
+      size = Math.max(2, Math.round(cell * dpr));
+      atlas.width = size * LEVELS;
+      atlas.height = size;
+      actx.clearRect(0, 0, atlas.width, atlas.height);
+      actx.fillStyle = ink;
+      for (let l = 1; l <= LEVELS; l++) {
+        const r = (size / 2) * (l / LEVELS) * 0.95;
+        const cx = (l - 1) * size + size / 2;
+        const cy = size / 2;
+        actx.beginPath();
+        actx.moveTo(cx, cy - r);
+        actx.lineTo(cx + r, cy);
+        actx.lineTo(cx, cy + r);
+        actx.lineTo(cx - r, cy);
+        actx.closePath();
+        actx.fill();
+      }
+    };
     let raf = 0;
     let visible = true;
     let last = 0;
@@ -89,49 +170,82 @@ export function Halftone({ variant, cell = 8, className, ink = "17, 17, 17" }: P
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       width = rect.width;
       height = rect.height;
+      if (!width || !height) return;
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      buildAtlas();
+      grid = buildGrid(variant, width, height, cell);
+      center = new Float32Array(grid.cols);
+      spread = new Float32Array(grid.cols);
+      edge = new Float32Array(grid.cols);
     };
 
     const draw = (time: number) => {
+      if (!grid) return;
       const t = (time - start) / 1000;
-      ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = `rgb(${ink})`;
-      ctx.beginPath();
-      const aspect = width / Math.max(1, height);
-      const cols = Math.ceil(width / cell);
-      const rows = Math.ceil(height / cell);
-      for (let j = 0; j <= rows; j++) {
-        const cy = j * cell;
-        for (let i = 0; i <= cols; i++) {
-          const cx = i * cell + (j % 2 ? cell / 2 : 0);
-          const v = field(cx / width, cy / height, t, aspect);
-          if (v < 0.08) continue;
-          const r = (cell / 2) * Math.min(1, v) * 0.95;
-          ctx.moveTo(cx, cy - r);
-          ctx.lineTo(cx + r, cy);
-          ctx.lineTo(cx, cy + r);
-          ctx.lineTo(cx - r, cy);
-          ctx.closePath();
+      const g = grid;
+      const aspectFix = Math.min(1, (1.6 * height) / Math.max(1, width) + 0.4);
+
+      if (variant === "voice") {
+        // The wave is computed per column (~200 values), not per dot.
+        for (let i = 0; i < g.cols; i++) {
+          const nx = (i * cell) / width;
+          center[i] =
+            0.5 +
+            0.1 * Math.sin(nx * 5.2 + t * 0.7) +
+            0.05 * Math.sin(nx * 12.7 - t * 1.4);
+          const env =
+            0.35 +
+            0.65 * Math.pow(Math.abs(Math.sin(nx * 2.4 + t * 0.45)), 1.4);
+          spread[i] = (0.06 + 0.16 * env) * aspectFix;
+          edge[i] = smoothstep(0, 0.12, nx) * smoothstep(1, 0.88, nx);
         }
       }
-      ctx.fill();
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const half = size / 2;
+      const swirlT = t * 0.25;
+
+      for (let k = 0; k < g.count; k++) {
+        let v: number;
+        if (variant === "voice") {
+          const c = g.col[k]!;
+          const e = edge[c]!;
+          if (e === 0) continue;
+          const d = (g.ny[k]! - center[c]!) / spread[c]!;
+          if (d > 2.2 || d < -2.2) continue; // exp(-d²) is negligible here
+          v = Math.exp(-d * d) * g.base[k]! * e;
+        } else {
+          v = smoothstep(0.42, 0.78, g.base[k]! + 0.12 * Math.sin(g.phase[k]! + swirlT));
+        }
+        if (v < 0.08) continue;
+        const level = v >= 1 ? LEVELS : Math.max(1, Math.round(v * LEVELS));
+        ctx.drawImage(
+          atlas,
+          (level - 1) * size,
+          0,
+          size,
+          size,
+          Math.round(g.x[k]! * dpr - half),
+          Math.round(g.y[k]! * dpr - half),
+          size,
+          size,
+        );
+      }
     };
 
     const loop = (time: number) => {
       raf = requestAnimationFrame(loop);
-      if (!visible || document.hidden) return;
-      if (time - last < 33) return;
+      if (!visible || document.hidden || time - last < FRAME_MS[variant]) return;
       last = time;
       draw(time);
     };
 
     resize();
-    draw(start);
+    draw(performance.now());
 
     const ro = new ResizeObserver(() => {
       resize();
@@ -144,14 +258,32 @@ export function Halftone({ variant, cell = 8, className, ink = "17, 17, 17" }: P
     });
     io.observe(canvas);
 
+    // Theme switch: pick up the new dot colour.
+    const mo = new MutationObserver(() => {
+      ink = getComputedStyle(canvas).color;
+      buildAtlas();
+      draw(performance.now());
+    });
+    mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
     if (!reduce) raf = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
       io.disconnect();
+      mo.disconnect();
     };
-  }, [variant, cell, ink]);
+  }, [variant, cell]);
 
-  return <canvas ref={ref} aria-hidden className={cn("block h-full w-full", className)} />;
+  return (
+    <canvas
+      ref={ref}
+      aria-hidden
+      className={cn("block h-full w-full text-foreground", className)}
+    />
+  );
 }

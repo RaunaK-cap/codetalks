@@ -38,10 +38,10 @@ function Choice({
       disabled={disabled}
       onClick={onSelect}
       className={cn(
-        "relative rounded-xl border bg-white p-3.5 text-left transition-[border-color,box-shadow] duration-200 disabled:cursor-not-allowed",
+        "relative rounded-xl border bg-card p-3.5 text-left transition-[border-color,box-shadow] duration-200 disabled:cursor-not-allowed",
         selected
           ? "border-foreground/70 shadow-[0_0_0_3px_oklch(0_0_0/6%)]"
-          : "border-black/[0.08] enabled:hover:border-black/20",
+          : "border-foreground/[0.08] enabled:hover:border-foreground/20",
       )}
     >
       {selected && (
@@ -60,7 +60,7 @@ function StepLabel({ n, title, done }: { n: number; title: string; done?: boolea
       <span
         className={cn(
           "grid size-5 place-items-center rounded-full font-mono text-[0.625rem]",
-          done ? "bg-foreground text-background" : "border border-black/15 text-muted-foreground",
+          done ? "bg-foreground text-background" : "border border-foreground/15 text-muted-foreground",
         )}
       >
         {done ? <Check className="size-2.5" strokeWidth={3} /> : n}
@@ -83,7 +83,7 @@ function PlanStatus({ view, onRetry }: { view: InterviewView; onRetry: () => voi
               ) : i === current ? (
                 <Loader2 className="size-3.5 animate-spin" />
               ) : (
-                <span className="size-1.5 rounded-full bg-black/20" />
+                <span className="size-1.5 rounded-full bg-foreground/20" />
               )}
             </span>
             <span className={i <= current ? "text-foreground" : "text-muted-foreground"}>{STEP_LABEL[s]}</span>
@@ -109,8 +109,8 @@ function PlanStatus({ view, onRetry }: { view: InterviewView; onRetry: () => voi
     return (
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="mt-4">
         <p className="text-[0.8125rem] text-muted-foreground">{view.summary}</p>
-        <p className="mt-3 rounded-xl bg-black/[0.03] p-3 text-[0.8125rem] text-foreground/80 italic">“{view.plan.opener}”</p>
-        <ol className="mt-3 divide-y divide-black/[0.05]">
+        <p className="mt-3 rounded-xl bg-foreground/[0.03] p-3 text-[0.8125rem] text-foreground/80 italic">“{view.plan.opener}”</p>
+        <ol className="mt-3 divide-y divide-foreground/[0.05]">
           {view.plan.questions.map((q, i) => (
             <motion.li
               key={q.id}
@@ -122,7 +122,7 @@ function PlanStatus({ view, onRetry }: { view: InterviewView; onRetry: () => voi
               <span className="font-mono text-[0.6875rem] text-muted-foreground">0{i + 1}</span>
               <span>
                 <span className="block text-[0.8125rem]">{q.ask}</span>
-                <span className="mt-1.5 inline-flex rounded-md bg-black/[0.04] px-1.5 py-0.5 font-mono text-[0.625rem] text-muted-foreground">
+                <span className="mt-1.5 inline-flex rounded-md bg-foreground/[0.04] px-1.5 py-0.5 font-mono text-[0.625rem] text-muted-foreground">
                   {DIMENSION_LABEL[q.dimension]}
                 </span>
               </span>
@@ -201,7 +201,7 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
       <div className="grid gap-3">
         <Card className="p-5">
           <StepLabel n={1} title="What should the interview cover?" done={locked} />
-          <div role="radiogroup" aria-label="Interview scope" className="mt-4 inline-flex rounded-full bg-black/[0.04] p-1">
+          <div role="radiogroup" aria-label="Interview scope" className="mt-4 inline-flex rounded-full bg-foreground/[0.04] p-1">
             {(
               [
                 ["latest", "Latest projects"],
@@ -217,7 +217,7 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
                 onClick={() => setMode(value)}
                 className={cn(
                   "rounded-full px-3.5 py-1.5 font-mono text-[0.6875rem] transition-colors disabled:cursor-not-allowed",
-                  mode === value ? "bg-white text-foreground shadow-[0_1px_2px_oklch(0_0_0/8%)]" : "text-muted-foreground",
+                  mode === value ? "bg-card text-foreground shadow-[0_1px_2px_oklch(0_0_0/8%)]" : "text-muted-foreground",
                 )}
               >
                 {label}
@@ -232,7 +232,7 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
               </p>
               <ul className="mt-3 grid gap-2 sm:grid-cols-3">
                 {latest.map((r) => (
-                  <li key={r.fullName} className="rounded-xl border border-black/[0.08] bg-white p-3.5">
+                  <li key={r.fullName} className="rounded-xl border border-foreground/[0.08] bg-card p-3.5">
                     <span className="flex items-center justify-between gap-2">
                       <span className="truncate text-[0.8125rem] font-medium">{r.name}</span>
                       <Check className="size-3.5 shrink-0 text-muted-foreground" />
@@ -271,7 +271,7 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
                 <button
                   type="button"
                   onClick={() => setShowAll((v) => !v)}
-                  className="mt-3 font-mono text-[0.6875rem] text-muted-foreground underline decoration-black/20 underline-offset-4 hover:text-foreground"
+                  className="mt-3 font-mono text-[0.6875rem] text-muted-foreground underline decoration-foreground/20 underline-offset-4 hover:text-foreground"
                 >
                   {showAll ? "Show fewer" : `Show all ${repos.length}`}
                 </button>
@@ -332,7 +332,7 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
               </div>
             ))}
           </dl>
-          <div className="mt-5 rounded-xl border border-black/[0.07] p-3 font-mono text-[0.6875rem] leading-relaxed text-muted-foreground">
+          <div className="mt-5 rounded-xl border border-foreground/[0.07] p-3 font-mono text-[0.6875rem] leading-relaxed text-muted-foreground">
             <Mic className="mb-1.5 size-3.5 text-foreground" />
             Uses your microphone. The call is recorded so you can replay it. Find a quiet spot.
           </div>

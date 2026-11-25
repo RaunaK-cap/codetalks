@@ -7,7 +7,7 @@ export function Card({ className, children, id }: { className?: string; children
     <section
       id={id}
       className={cn(
-        "rounded-[18px] border border-black/[0.07] bg-white shadow-[0_1px_2px_oklch(0_0_0/4%)]",
+        "rounded-[18px] border border-foreground/[0.07] bg-card shadow-[0_1px_2px_oklch(0_0_0/4%)]",
         className,
       )}
     >

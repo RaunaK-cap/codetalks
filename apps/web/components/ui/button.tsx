@@ -14,11 +14,11 @@ const buttonVariants = cva(
         default:
           "bg-primary text-primary-foreground shadow-[inset_0_1px_0_oklch(1_0_0/18%),0_1px_2px_oklch(0_0_0/20%)] hover:bg-primary/85",
         outline:
-          "border-black/10 bg-white text-foreground shadow-[0_1px_2px_oklch(0_0_0/5%)] hover:border-black/20 hover:bg-neutral-50",
+          "border-foreground/10 bg-card text-foreground shadow-[0_1px_2px_oklch(0_0_0/5%)] hover:border-foreground/20 hover:bg-muted",
         glass:
-          "glass text-foreground hover:bg-white/80",
-        ghost: "text-muted-foreground hover:bg-black/[0.04] hover:text-foreground",
-        link: "h-auto px-0 text-foreground underline decoration-black/25 underline-offset-4 hover:decoration-foreground",
+          "glass text-foreground hover:bg-card/80",
+        ghost: "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
+        link: "h-auto px-0 text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground",
       },
       size: {
         sm: "h-8 px-3.5",

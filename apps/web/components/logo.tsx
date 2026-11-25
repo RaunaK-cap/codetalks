@@ -8,11 +8,11 @@ export function LogoMark({ className }: { className?: string }) {
       <path
         d="M15.4 8.4a5.1 5.1 0 1 0 0 7.2"
         fill="none"
-        stroke="white"
+        stroke="var(--background)"
         strokeWidth="2.6"
         strokeLinecap="round"
       />
-      <circle cx="17.4" cy="16.4" r="1.5" fill="white" />
+      <circle cx="17.4" cy="16.4" r="1.5" fill="var(--background)" />
     </svg>
   );
 }

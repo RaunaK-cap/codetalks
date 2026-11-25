@@ -58,7 +58,7 @@ function CallCard() {
 
   return (
     <div className="glass w-[min(26rem,calc(100vw-3rem))] rounded-2xl p-1.5">
-      <div className="rounded-[12px] bg-white/70 p-4">
+      <div className="rounded-[12px] bg-card/70 p-4">
         <div className="flex items-center justify-between font-mono text-[0.6875rem]">
           <span className="inline-flex items-center gap-2 text-foreground">
             <span className="relative flex size-1.5">
@@ -76,9 +76,9 @@ function CallCard() {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 8, filter: "blur(4px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.5, ease }}
             >
               <p className="font-mono text-[0.625rem] tracking-wide text-muted-foreground uppercase">
@@ -87,14 +87,14 @@ function CallCard() {
               <p className="mt-1 text-[0.875rem] leading-snug font-medium text-foreground">
                 {ex.q}
               </p>
-              <span className="mt-2 inline-flex rounded-md border border-black/8 bg-white px-1.5 py-0.5 font-mono text-[0.625rem] text-foreground/70">
+              <span className="mt-2 inline-flex rounded-md border border-foreground/8 bg-card px-1.5 py-0.5 font-mono text-[0.625rem] text-foreground/70">
                 {ex.cite}
               </span>
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.4, duration: 0.5 }}
-                className="mt-3 border-l border-black/10 pl-2.5 text-[0.8125rem] text-muted-foreground"
+                className="mt-3 border-l border-foreground/10 pl-2.5 text-[0.8125rem] text-muted-foreground"
               >
                 <span className="font-mono text-[0.625rem] uppercase">
                   You ·{" "}
@@ -105,7 +105,7 @@ function CallCard() {
           </AnimatePresence>
         </div>
 
-        <div className="mt-3 flex items-center gap-3 border-t border-black/6 pt-3">
+        <div className="mt-3 flex items-center gap-3 border-t border-foreground/6 pt-3">
           <Waveform bars={32} className="h-6 flex-1" />
           <span className="font-mono text-[0.625rem] text-muted-foreground">
             Listening
@@ -122,8 +122,8 @@ export function Hero() {
     reduce
       ? {}
       : {
-          initial: { opacity: 0, y: 12, filter: "blur(6px)" },
-          animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+          initial: { opacity: 0, y: 12 },
+          animate: { opacity: 1, y: 0 },
           transition: { duration: 0.9, ease, delay: d },
         };
 
@@ -141,7 +141,7 @@ export function Hero() {
             className="object-cover object-[62%_100%]"
           />
           <div className="absolute inset-0 bg-[linear-gradient(to_bottom,oklch(0.45_0.12_250/22%),transparent_40%)]" />
-          <div className="absolute inset-x-0 bottom-0 h-[45%] bg-[linear-gradient(to_bottom,transparent,oklch(1_0_0/55%)_45%,oklch(1_0_0/92%)_80%,white)]" />
+          <div className="absolute inset-x-0 bottom-0 h-[45%] bg-[linear-gradient(to_bottom,transparent,color-mix(in_oklch,var(--background)_55%,transparent)_45%,color-mix(in_oklch,var(--background)_92%,transparent)_80%,var(--background))]" />
         </div>
 
         <div className="relative mx-auto max-w-3xl px-5 pt-[8.5rem] text-center sm:pt-40">

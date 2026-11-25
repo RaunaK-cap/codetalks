@@ -17,7 +17,7 @@ function ProfileSummary({ profile }: { profile: LinkedinProfile }) {
     !profile.name && !profile.headline && profile.experience.length === 0 && profile.education.length === 0;
   if (empty) {
     return (
-      <p className="rounded-xl border border-dashed border-black/[0.12] p-4 font-mono text-[0.6875rem] text-muted-foreground">
+      <p className="rounded-xl border border-dashed border-foreground/[0.12] p-4 font-mono text-[0.6875rem] text-muted-foreground">
         No profile details were found in those screenshots. Try clearer screenshots of your profile page.
       </p>
     );
@@ -33,7 +33,7 @@ function ProfileSummary({ profile }: { profile: LinkedinProfile }) {
       {profile.experience.length > 0 && (
         <div>
           <MonoLabel>Experience</MonoLabel>
-          <ul className="mt-2 divide-y divide-black/[0.05]">
+          <ul className="mt-2 divide-y divide-foreground/[0.05]">
             {profile.experience.map((x, i) => (
               <li key={i} className="py-2">
                 <p className="text-[0.8125rem] font-medium">
@@ -67,7 +67,7 @@ function ProfileSummary({ profile }: { profile: LinkedinProfile }) {
           <MonoLabel>Skills</MonoLabel>
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {profile.skills.map((s) => (
-              <li key={s} className="rounded-full border border-black/[0.08] px-2.5 py-0.5 font-mono text-[0.6875rem]">
+              <li key={s} className="rounded-full border border-foreground/[0.08] px-2.5 py-0.5 font-mono text-[0.6875rem]">
                 {s}
               </li>
             ))}
@@ -153,7 +153,7 @@ export function LinkedinUpload({
                 e.preventDefault();
                 add(e.dataTransfer.files);
               }}
-              className="rounded-xl border border-dashed border-black/15 p-4"
+              className="rounded-xl border border-dashed border-foreground/15 p-4"
             >
               {files.length === 0 ? (
                 <button
@@ -161,7 +161,7 @@ export function LinkedinUpload({
                   onClick={() => input.current?.click()}
                   className="flex w-full flex-col items-center gap-2 py-6 text-center"
                 >
-                  <span className="grid size-8 place-items-center rounded-full border border-black/10 bg-white">
+                  <span className="grid size-8 place-items-center rounded-full border border-foreground/10 bg-card">
                     <ImagePlus className="size-3.5" />
                   </span>
                   <span className="text-[0.8125rem] font-medium">Add up to 4 screenshots</span>
@@ -172,14 +172,14 @@ export function LinkedinUpload({
               ) : (
                 <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {previews.map((src, i) => (
-                    <li key={src} className="relative overflow-hidden rounded-lg border border-black/[0.08]">
+                    <li key={src} className="relative overflow-hidden rounded-lg border border-foreground/[0.08]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={src} alt={`Screenshot ${i + 1}`} className="aspect-[4/3] w-full object-cover" />
                       <button
                         type="button"
                         aria-label={`Remove screenshot ${i + 1}`}
                         onClick={() => setFiles((f) => f.filter((_, j) => j !== i))}
-                        className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-white/90 shadow"
+                        className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-card/90 shadow"
                       >
                         <X className="size-3" />
                       </button>
@@ -190,7 +190,7 @@ export function LinkedinUpload({
                       <button
                         type="button"
                         onClick={() => input.current?.click()}
-                        className="grid aspect-[4/3] w-full place-items-center rounded-lg border border-dashed border-black/15 text-muted-foreground hover:text-foreground"
+                        className="grid aspect-[4/3] w-full place-items-center rounded-lg border border-dashed border-foreground/15 text-muted-foreground hover:text-foreground"
                         aria-label="Add another screenshot"
                       >
                         <ImagePlus className="size-4" />

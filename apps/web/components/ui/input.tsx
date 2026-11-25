@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
  * a soft ring on focus and a red edge when aria-invalid is set.
  */
 const inputClass =
-  "h-9 w-full min-w-0 rounded-full border border-black/10 bg-white px-4 font-mono text-[0.75rem] text-foreground shadow-[0_1px_2px_oklch(0_0_0/4%)] transition-[border-color,box-shadow] duration-200 outline-none placeholder:text-black/35 hover:border-black/20 focus-visible:border-black/30 focus-visible:ring-4 focus-visible:ring-black/[0.06] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive/60 aria-invalid:ring-4 aria-invalid:ring-destructive/10"
+  "h-9 w-full min-w-0 rounded-full border border-foreground/10 bg-card px-4 font-mono text-[0.75rem] text-foreground shadow-[0_1px_2px_oklch(0_0_0/4%)] transition-[border-color,box-shadow] duration-200 outline-none placeholder:text-foreground/35 hover:border-foreground/20 focus-visible:border-foreground/30 focus-visible:ring-4 focus-visible:ring-foreground/[0.06] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive/60 aria-invalid:ring-4 aria-invalid:ring-destructive/10"
 
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
@@ -36,7 +36,7 @@ function PasswordInput({ className, ...props }: Omit<React.ComponentProps<"input
         onClick={() => setVisible((v) => !v)}
         aria-label={visible ? "Hide password" : "Show password"}
         aria-pressed={visible}
-        className="absolute top-1/2 right-1.5 grid size-6 -translate-y-1/2 place-items-center rounded-full text-black/40 transition-colors hover:bg-black/[0.04] hover:text-foreground"
+        className="absolute top-1/2 right-1.5 grid size-6 -translate-y-1/2 place-items-center rounded-full text-foreground/40 transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
       >
         {visible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
       </button>

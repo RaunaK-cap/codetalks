@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 /* Loading, empty, and error states shared by every app page. */
 
 export function Skeleton({ className }: { className?: string }) {
-  return <span aria-hidden className={cn("block animate-pulse rounded-lg bg-black/[0.05]", className)} />;
+  return <span aria-hidden className={cn("block animate-pulse rounded-lg bg-foreground/[0.05]", className)} />;
 }
 
 export function LoadingCards({ count = 2, className }: { count?: number; className?: string }) {
@@ -40,7 +40,7 @@ export function Empty({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl border border-dashed border-black/[0.12] px-6 py-10 text-center",
+        "flex flex-col items-center justify-center rounded-xl border border-dashed border-foreground/[0.12] px-6 py-10 text-center",
         className,
       )}
     >
@@ -64,7 +64,7 @@ export function ErrorNote({ message, onRetry, children }: { message: string; onR
         <button
           type="button"
           onClick={onRetry}
-          className="mt-3 inline-flex items-center gap-1.5 font-mono text-[0.6875rem] text-foreground underline decoration-black/25 underline-offset-4"
+          className="mt-3 inline-flex items-center gap-1.5 font-mono text-[0.6875rem] text-foreground underline decoration-foreground/25 underline-offset-4"
         >
           <RotateCw className="size-3" /> Try again
         </button>

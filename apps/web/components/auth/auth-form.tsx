@@ -167,9 +167,9 @@ export function AuthForm({ initial, next }: { initial: AuthMode; next?: string }
   const swap = reduce
     ? {}
     : {
-        initial: { opacity: 0, y: 6, filter: "blur(4px)" },
-        animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-        exit: { opacity: 0, y: -6, filter: "blur(4px)" },
+        initial: { opacity: 0, y: 6 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -6 },
         transition: { duration: 0.35, ease },
       };
 
@@ -214,9 +214,9 @@ export function AuthForm({ initial, next }: { initial: AuthMode; next?: string }
       </div>
 
       <div className="my-5 flex items-center gap-3 font-mono text-[0.625rem] text-muted-foreground uppercase">
-        <span className="h-px flex-1 bg-black/[0.08]" />
+        <span className="h-px flex-1 bg-foreground/[0.08]" />
         or
-        <span className="h-px flex-1 bg-black/[0.08]" />
+        <span className="h-px flex-1 bg-foreground/[0.08]" />
       </div>
 
       <form noValidate onSubmit={onSubmit}>
@@ -307,7 +307,7 @@ export function AuthForm({ initial, next }: { initial: AuthMode; next?: string }
           type="button"
           onClick={switchMode}
           disabled={busy}
-          className="mt-1 font-medium text-foreground underline decoration-black/25 underline-offset-4 hover:decoration-foreground"
+          className="mt-1 font-medium text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground"
         >
           {copy.switchCta}
         </button>

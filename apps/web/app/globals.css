@@ -5,9 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * CodeTalk: light, minimal, monochrome.
- * Full-bleed white pages. Halftone dots are the one visual motif.
+ * CodeTalk: minimal, monochrome, light and dark.
+ * Halftone dots are the one visual motif.
  * Sans for headings and reading text, mono for labels, controls and data.
+ * Components use tokens (bg-card, border-foreground/[0.07]...) so both themes come from here.
  */
 :root {
   --background: oklch(1 0 0);
@@ -32,6 +33,36 @@
 
   --live: oklch(0.62 0.19 254);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --glass: oklch(1 0 0 / 62%);
+  --glass-edge: oklch(1 0 0 / 70%);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.96 0 0);
+  --card: oklch(0.185 0 0);
+  --card-foreground: oklch(0.96 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.96 0 0);
+  --primary: oklch(0.96 0 0);
+  --primary-foreground: oklch(0.16 0 0);
+  --secondary: oklch(0.24 0 0);
+  --secondary-foreground: oklch(0.96 0 0);
+  --muted: oklch(0.175 0 0);
+  --muted-foreground: oklch(0.68 0 0);
+  --accent: oklch(0.24 0 0);
+  --accent-foreground: oklch(0.96 0 0);
+  --destructive: oklch(0.7 0.19 22);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.96 0 0);
+
+  --live: oklch(0.72 0.15 254);
+
+  --glass: oklch(0.185 0 0 / 62%);
+  --glass-edge: oklch(1 0 0 / 8%);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -109,13 +140,13 @@
 }
 
 @layer components {
-/* Glass: translucent white with blur, a bright inner edge and a soft drop. */
+/* Glass: translucent surface with blur, a bright inner edge and a soft drop. */
 .glass {
-  background: oklch(1 0 0 / 58%);
-  backdrop-filter: saturate(170%) blur(18px);
-  -webkit-backdrop-filter: saturate(170%) blur(18px);
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   box-shadow:
-    inset 0 0 0 1px oklch(1 0 0 / 70%),
+    inset 0 0 0 1px var(--glass-edge),
     0 1px 2px oklch(0 0 0 / 4%),
     0 12px 32px -12px oklch(0 0 0 / 14%);
 }
