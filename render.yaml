@@ -1,0 +1,52 @@
+# Render Blueprint for the API (apps/api). The web app deploys to Vercel.
+# No rootDir: the build needs the repo root so Bun workspaces (@repo/contracts) resolve.
+services:
+  - type: web
+    name: codetalks-api
+    runtime: node # Render's JS runtime ships with Bun; all commands below use it
+    plan: starter # always on; free instances sleep after 15 min idle
+    buildCommand: bun install --frozen-lockfile && cd apps/api && bunx prisma generate
+    preDeployCommand: cd apps/api && bunx prisma migrate deploy
+    startCommand: cd apps/api && bun index.ts
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/contracts/**
+        - package.json
+        - bun.lock
+        - render.yaml
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Vercel's proxy + Render's load balancer sit in front of Express.
+      - key: TRUST_PROXY
+        value: "2"
+      - key: WEB_ORIGIN
+        value: https://codetalks.raunakk.xyz
+      - key: BETTER_AUTH_URL
+        value: https://codetalks.raunakk.xyz
+      # Secrets: set these in the Render dashboard when the Blueprint asks.
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: FISH_API_KEY
+        sync: false
+      - key: FISH_AGENT_ID
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false

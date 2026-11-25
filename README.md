@@ -82,6 +82,18 @@ Auth: Better Auth runs inside Express (`lib/auth.ts`, tables in `prisma/schema/a
 Setup: copy `apps/api/.env.example` to `apps/api/.env` and `apps/web/.env.example` to `apps/web/.env.local`, fill them, then `bun run db:migrate --name init`, then `bun run dev`. Tests: `bun test`.
 Fish agent: publish it, set `conversation.max_duration_seconds` to 300.
 
+## 2b. Deploy
+
+```
+codetalks.raunakk.xyz (Vercel, apps/web) ──/api/* rewrite──► Render (apps/api) ──► Neon, Gemini, Fish, GitHub
+```
+
+- **API on Render**: `render.yaml` Blueprint (Starter plan). Builds from the repo root so Bun workspaces resolve; runs `prisma migrate deploy` before each release; health check `/api/health`. Secrets are entered in the Render dashboard.
+- **Web on Vercel**: root directory `apps/web` (`apps/web/vercel.json`). Env `API_ORIGIN` = the Render service URL (needed at build time for the rewrite).
+- **Domain**: `codetalks.raunakk.xyz` added in Vercel → CNAME `codetalks` at Hostinger pointing to the value Vercel shows.
+- **OAuth callbacks** in production: `https://codetalks.raunakk.xyz/api/auth/callback/github` and `/google`.
+- Pushing to `main` redeploys both. Other branches get Vercel preview URLs.
+
 ## 3. Product
 
 **Problem.** Generic mock interviews ask LeetCode and "design Twitter". They ignore what the candidate actually built, so practice does not transfer.
