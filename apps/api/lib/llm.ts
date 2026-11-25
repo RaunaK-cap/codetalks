@@ -45,6 +45,8 @@ export async function generateObject<S extends z.ZodType>(options: {
       { role: "user", content },
     ],
     response_format: { type: "json_schema", json_schema: { name, schema: jsonSchema(schema) } },
+    // Gemini "thinks" before answering by default; these tasks need little of it and run much faster.
+    reasoning_effort: env.LLM_REASONING_EFFORT,
   });
 
   const text = completion.choices[0]?.message.content;

@@ -25,6 +25,7 @@ const Env = z.object({
   LLM_BASE_URL: z.string().default("https://generativelanguage.googleapis.com/v1beta/openai/"),
   LLM_TEXT_MODEL: z.string().default("gemini-3.5-flash"),
   LLM_VISION_MODEL: z.string().default("gemini-3.1-flash-lite"),
+  LLM_REASONING_EFFORT: z.enum(["low", "medium", "high"]).default("low"),
   FISH_API_KEY: required,
   FISH_AGENT_ID: required,
   CALLS_PER_USER_PER_DAY: z.coerce.number().int().positive().default(3),
