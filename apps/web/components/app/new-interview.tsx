@@ -300,7 +300,7 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
               <motion.div key="choose" exit={{ opacity: 0 }} className="mt-4">
                 <p className="text-[0.8125rem] text-muted-foreground">
                   We read your profile and <span className="font-mono text-foreground">{coveredLabel}</span>, pick the claims and
-                  code worth asking about, and write five questions. Takes about twenty seconds.
+                  code worth asking about, and write five questions. Takes under a minute.
                 </p>
                 <Button className="mt-4" onClick={prepare} disabled={creating || !selected}>
                   {creating ? <Loader2 className="animate-spin" /> : null}

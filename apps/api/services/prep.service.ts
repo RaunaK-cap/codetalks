@@ -1,7 +1,7 @@
 import { FactSheet, Plan, type GithubProfile, type LinkedinProfile, type Role } from "@repo/contracts";
 import { factSheetSystem, factsForPlanner, planSystem } from "../lib/prompts";
 import { untrusted } from "../lib/untrusted";
-import { generateObject } from "../lib/xai";
+import { generateObject } from "../lib/llm";
 import type { RepoMaterial } from "./github.service";
 
 /* Turns raw sources into a fact sheet, then the fact sheet into a question plan. */

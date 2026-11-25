@@ -28,7 +28,7 @@ export const apiLimit = limiter("API", 300, 5 * MINUTE);
 /** POST /candidates: hits the GitHub API (60 req/hour without a token). */
 export const githubLimit = limiter("GitHub lookup", 10, 10 * MINUTE);
 
-/** POST /candidates/:id/linkedin: Grok vision on up to 4 images. */
+/** POST /candidates/:id/linkedin: an LLM vision call on up to 4 images. */
 export const linkedinLimit = limiter("LinkedIn upload", 5, 30 * MINUTE);
 
 /** POST /interviews: GitHub reads plus two Grok calls. */

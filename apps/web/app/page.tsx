@@ -20,7 +20,7 @@ const STEPS = [
   {
     n: "01",
     title: "Connect a source",
-    body: "Paste a public repo or drop your resume PDF. We build a fact sheet in about twenty seconds.",
+    body: "Connect your GitHub, add LinkedIn screenshots if you like. We build a fact sheet in under a minute.",
   },
   {
     n: "02",

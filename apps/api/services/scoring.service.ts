@@ -1,7 +1,7 @@
 import { Report, type Line, type Plan } from "@repo/contracts";
 import { planForGrader, reportSystem } from "../lib/prompts";
 import { untrusted } from "../lib/untrusted";
-import { generateObject } from "../lib/xai";
+import { generateObject } from "../lib/llm";
 
 /* Grades the stored transcript. The voice model has no say in this. */
 export async function scoreInterview(input: { plan: Plan; lines: Line[] }): Promise<Report> {

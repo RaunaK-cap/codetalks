@@ -65,7 +65,7 @@ prisma/             schema + migrations      packages/contracts  Zod shapes shar
 | --- | --- | --- |
 | POST | `/api/candidates` `{ github }` | Reads the GitHub user + repos (REST), saves the candidate |
 | GET | `/api/candidates/:id` | Candidate with GitHub and LinkedIn data |
-| POST | `/api/candidates/:id/linkedin` | Multipart `screenshots` (1–4 images) → Grok vision → LinkedIn profile |
+| POST | `/api/candidates/:id/linkedin` | Multipart `screenshots` (1–4 images) → Gemini vision → LinkedIn profile |
 | GET | `/api/candidates/:id/interviews` | History list with scores |
 | POST | `/api/interviews` `{ candidateId, role, repo? }` | 202, prepares in the background (repo → fact sheet → plan) |
 | GET | `/api/interviews/:id` | Status + what that status allows (poll this) |
@@ -112,7 +112,7 @@ Fish agent: publish it, set `conversation.max_duration_seconds` to 300.
 | Auth | better-auth, GitHub login primary (after the v1 slice) |
 | GitHub | Octokit GraphQL, one snapshot call, cached 24h in Postgres |
 | PDFs | `pdf-parse`, parsed in memory, 5 MB cap |
-| Text LLM | Fact sheet, question plan, scoring, summary. One provider behind one env var |
+| Text LLM | Google Gemini via its OpenAI-compatible API (`GOOGLE_API_KEY`): fact sheet, question plan, scoring, LinkedIn screenshots |
 | Voice | Fish Audio Fish Agents (Live 3). Grok Voice behind the same adapter as fallback |
 | Hosting | Render, two web services (web, api), custom domain |
 
