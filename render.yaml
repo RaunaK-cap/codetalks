@@ -5,6 +5,7 @@ services:
     name: codetalks-api
     runtime: node # Render's JS runtime ships with Bun; all commands below use it
     plan: starter # always on; free instances sleep after 15 min idle
+    region: virginia # same region as the Neon database (aws us-east-1)
     buildCommand: bun install --frozen-lockfile && cd apps/api && bunx prisma generate
     preDeployCommand: cd apps/api && bunx prisma migrate deploy
     startCommand: cd apps/api && bun index.ts
