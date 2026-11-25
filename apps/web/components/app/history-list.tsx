@@ -11,7 +11,7 @@ import { ConnectFirst, Empty, ErrorNote, LoadingCards } from "@/components/app/s
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, errorMessage } from "@/lib/api";
-import { useCandidate } from "@/lib/candidate";
+import { useMe } from "@/lib/me";
 import {
   DIMENSIONS,
   DIMENSION_LABEL,
@@ -95,8 +95,8 @@ function Row({ i }: { i: InterviewSummary }) {
 }
 
 export function HistoryList() {
-  const { id, candidate, isLoading } = useCandidate();
-  const list = useSWR(id ? ["interviews", id] : null, () => api.listInterviews(id!));
+  const { candidate, isLoading } = useMe();
+  const list = useSWR(candidate ? "interviews" : null, api.listInterviews);
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<string | null>("all");
 

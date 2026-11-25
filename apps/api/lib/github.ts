@@ -40,17 +40,24 @@ export type GhRepo = {
 
 export type GhTreeEntry = { path: string; type: "blob" | "tree" | "commit"; size?: number };
 
-function headers(accept = "application/vnd.github+json"): Record<string, string> {
+/*
+ * Every call takes an optional token. A signed-in GitHub user's own token gives
+ * 5000 requests/hour for that user; otherwise the server's GITHUB_TOKEN (or none) is used.
+ */
+export type GhToken = string | null | undefined;
+
+function headers(token: GhToken, accept = "application/vnd.github+json"): Record<string, string> {
+  const bearer = token ?? env.GITHUB_TOKEN;
   return {
     Accept: accept,
     "X-GitHub-Api-Version": "2022-11-28",
     "User-Agent": "codetalk-api",
-    ...(env.GITHUB_TOKEN ? { Authorization: `Bearer ${env.GITHUB_TOKEN}` } : {}),
+    ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
   };
 }
 
-async function request(path: string, accept?: string): Promise<Response | null> {
-  const res = await fetch(`${BASE}${path}`, { headers: headers(accept) });
+async function request(path: string, token: GhToken, accept?: string): Promise<Response | null> {
+  const res = await fetch(`${BASE}${path}`, { headers: headers(token, accept) });
   if (res.status === 404) return null;
 
   const remaining = res.headers.get("x-ratelimit-remaining");
@@ -63,44 +70,53 @@ async function request(path: string, accept?: string): Promise<Response | null> 
   return res;
 }
 
-async function json<T>(path: string): Promise<T | null> {
-  const res = await request(path);
+async function json<T>(path: string, token: GhToken): Promise<T | null> {
+  const res = await request(path, token);
   return res ? ((await res.json()) as T) : null;
 }
 
-async function raw(path: string): Promise<string | null> {
-  const res = await request(path, "application/vnd.github.raw+json");
+async function raw(path: string, token: GhToken): Promise<string | null> {
+  const res = await request(path, token, "application/vnd.github.raw+json");
   return res ? res.text() : null;
 }
 
-export async function getUser(login: string): Promise<GhUser> {
-  const user = await json<GhUser>(`/users/${encodeURIComponent(login)}`);
+export async function getUser(login: string, token?: GhToken): Promise<GhUser> {
+  const user = await json<GhUser>(`/users/${encodeURIComponent(login)}`, token);
   if (!user) throw notFound(`GitHub user "${login}"`);
   return user;
 }
 
-export async function listRepos(login: string): Promise<GhRepo[]> {
+/** The login behind a GitHub OAuth token. */
+export async function getAuthenticatedLogin(token: string): Promise<string> {
+  const user = await json<GhUser>("/user", token);
+  if (!user) throw notFound("GitHub account");
+  return user.login;
+}
+
+export async function listRepos(login: string, token?: GhToken): Promise<GhRepo[]> {
   const repos = await json<GhRepo[]>(
     `/users/${encodeURIComponent(login)}/repos?type=owner&sort=pushed&per_page=100`,
+    token,
   );
   return repos ?? [];
 }
 
-export async function getReadme(fullName: string): Promise<string | null> {
-  return raw(`/repos/${fullName}/readme`);
+export async function getReadme(fullName: string, token?: GhToken): Promise<string | null> {
+  return raw(`/repos/${fullName}/readme`, token);
 }
 
-export async function getLanguages(fullName: string): Promise<Record<string, number>> {
-  return (await json<Record<string, number>>(`/repos/${fullName}/languages`)) ?? {};
+export async function getLanguages(fullName: string, token?: GhToken): Promise<Record<string, number>> {
+  return (await json<Record<string, number>>(`/repos/${fullName}/languages`, token)) ?? {};
 }
 
-export async function getTree(fullName: string, branch: string): Promise<GhTreeEntry[]> {
+export async function getTree(fullName: string, branch: string, token?: GhToken): Promise<GhTreeEntry[]> {
   const tree = await json<{ tree: GhTreeEntry[] }>(
     `/repos/${fullName}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+    token,
   );
   return tree?.tree ?? [];
 }
 
-export async function getFile(fullName: string, path: string): Promise<string | null> {
-  return raw(`/repos/${fullName}/contents/${path.split("/").map(encodeURIComponent).join("/")}`);
+export async function getFile(fullName: string, path: string, token?: GhToken): Promise<string | null> {
+  return raw(`/repos/${fullName}/contents/${path.split("/").map(encodeURIComponent).join("/")}`, token);
 }

@@ -10,7 +10,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api, errorMessage } from "@/lib/api";
-import { rememberCandidate } from "@/lib/candidate";
 import { formatDate } from "@/lib/labels";
 
 const SHOWN = 8;
@@ -27,10 +26,13 @@ function StatusPill({ on }: { on: boolean }) {
 export function GithubConnect({
   candidate,
   loading,
+  viaGithubSignIn,
   onChange,
 }: {
   candidate: CandidateView | undefined;
   loading: boolean;
+  /** Signed in with GitHub: the profile is read with the user's own token. */
+  viaGithubSignIn: boolean;
   onChange: (c: CandidateView) => void;
 }) {
   const [value, setValue] = useState("");
@@ -42,9 +44,7 @@ export function GithubConnect({
     setBusy(true);
     setError(null);
     try {
-      const next = await api.connectGithub(input);
-      rememberCandidate(next.id);
-      onChange(next);
+      onChange(await api.connectGithub(input));
       setValue("");
     } catch (e) {
       setError(errorMessage(e));
@@ -65,7 +65,11 @@ export function GithubConnect({
     <Card className="mt-8">
       <CardHead
         title="GitHub"
-        hint="Public profile and repos, read through the official GitHub API."
+        hint={
+          viaGithubSignIn
+            ? "Connected through your GitHub sign-in. Public repos only."
+            : "Public profile and repos, read through the official GitHub API."
+        }
         action={<StatusPill on={!!gh} />}
       />
 

@@ -8,6 +8,17 @@ const required = z.string().min(1, "is required");
 const Env = z.object({
   PORT: z.coerce.number().int().default(4000),
   WEB_ORIGIN: z.string().default("http://localhost:3000"),
+  /** Proxies between the client and Express (Next.js rewrite locally; + Render's load balancer in production). */
+  TRUST_PROXY: z.coerce.number().int().min(0).default(1),
+
+  // Better Auth. The web app forwards /api/* here, so auth lives on the web origin.
+  BETTER_AUTH_SECRET: z.string().min(32, "must be at least 32 characters (openssl rand -base64 32)"),
+  BETTER_AUTH_URL: optional(z.string()),
+  GITHUB_CLIENT_ID: optional(z.string()),
+  GITHUB_CLIENT_SECRET: optional(z.string()),
+  GOOGLE_CLIENT_ID: optional(z.string()),
+  GOOGLE_CLIENT_SECRET: optional(z.string()),
+
   DATABASE_URL: required,
   GITHUB_TOKEN: optional(z.string()),
   GOOGLE_API_KEY: required,
@@ -16,7 +27,7 @@ const Env = z.object({
   LLM_VISION_MODEL: z.string().default("gemini-3.1-flash-lite"),
   FISH_API_KEY: required,
   FISH_AGENT_ID: required,
-  CALLS_PER_IP_PER_DAY: z.coerce.number().int().positive().default(3),
+  CALLS_PER_USER_PER_DAY: z.coerce.number().int().positive().default(3),
   CALL_MINUTES_PER_DAY: z.coerce.number().int().positive().default(60),
 });
 

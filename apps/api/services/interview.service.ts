@@ -21,6 +21,7 @@ import { assertMove } from "../lib/interview-machine";
 import { prisma } from "../lib/prisma";
 import { interviewerPrompt } from "../lib/prompts";
 import { assertCallBudget } from "./budget.service";
+import { candidateOf, githubTokenOf } from "./candidate.service";
 import { loadRepoMaterial, pickRepos, reposByName } from "./github.service";
 import { buildFactSheet, writePlan } from "./prep.service";
 import { scoreInterview } from "./scoring.service";
@@ -111,15 +112,21 @@ async function load(id: string): Promise<Interview> {
   return row;
 }
 
+/** Loads an interview only if it belongs to this user. Someone else's id looks like a missing one. */
+async function loadOwned(id: string, userId: string): Promise<Interview> {
+  const row = await prisma.interview.findFirst({ where: { id, candidate: { userId } } });
+  if (!row) throw notFound("Interview");
+  return row;
+}
+
 function reason(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown error";
 }
 
 /* ---------- Create and prepare ---------- */
 
-export async function createInterview(input: { candidateId: string; role: Role; repo?: string; ip: string }) {
-  const candidate = await prisma.candidate.findUnique({ where: { id: input.candidateId } });
-  if (!candidate) throw notFound("Candidate");
+export async function createInterview(input: { userId: string; role: Role; repo?: string; ip: string }) {
+  const candidate = await candidateOf(input.userId);
 
   // An interview only starts from a GitHub profile we have already read.
   const github = GithubProfile.parse(candidate.github);
@@ -150,12 +157,13 @@ async function prepare(id: string): Promise<void> {
     const github = GithubProfile.parse(row.candidate.github);
     const linkedin = row.candidate.linkedin ? LinkedinProfile.parse(row.candidate.linkedin) : null;
     const repos = reposByName(github, row.repos);
+    const token = await githubTokenOf(row.candidate.userId);
     const role = row.role as Role;
 
     // Code files only from the newest repo when covering several, to keep GitHub calls and tokens bounded.
     const deepDive = repos.length === 1;
     const materials = await Promise.all(
-      repos.map((r, i) => loadRepoMaterial(r, deepDive ? 3 : i === 0 ? 2 : 0)),
+      repos.map((r, i) => loadRepoMaterial(r, deepDive ? 3 : i === 0 ? 2 : 0, token)),
     );
     await setStep(id, "building_fact_sheet");
     const factSheet = await buildFactSheet({ role, github, materials, linkedin });
@@ -173,12 +181,12 @@ async function prepare(id: string): Promise<void> {
 
 /* ---------- Call ---------- */
 
-export async function startCall(id: string, ip: string): Promise<StartCallResponse> {
-  const row = await prisma.interview.findUnique({ where: { id }, include: { candidate: true } });
+export async function startCall(id: string, userId: string, ip: string): Promise<StartCallResponse> {
+  const row = await prisma.interview.findFirst({ where: { id, candidate: { userId } }, include: { candidate: true } });
   if (!row) throw notFound("Interview");
   if (row.status !== "ready") throw conflict("not_ready", `Interview is ${row.status}; a call can only start when it is ready.`);
 
-  await assertCallBudget(ip);
+  await assertCallBudget(userId);
 
   const github = GithubProfile.parse(row.candidate.github);
   const plan = Plan.parse(row.plan);
@@ -205,8 +213,8 @@ export async function startCall(id: string, ip: string): Promise<StartCallRespon
 }
 
 /** Saves one finalized line from the browser. Retries with the same seq are ignored. */
-export async function appendLine(id: string, line: Line): Promise<void> {
-  const row = await load(id);
+export async function appendLine(id: string, userId: string, line: Line): Promise<void> {
+  const row = await loadOwned(id, userId);
   if (row.status !== "live" && row.status !== "finishing") {
     throw conflict("not_live", `Interview is ${row.status}; lines can only be added during the call.`);
   }
@@ -218,7 +226,12 @@ export async function appendLine(id: string, line: Line): Promise<void> {
 }
 
 /** Ends the call. Safe to call more than once. */
-export async function endInterview(id: string) {
+export async function endInterview(id: string, userId: string) {
+  await loadOwned(id, userId);
+  return endCall(id);
+}
+
+async function endCall(id: string) {
   const row = await load(id);
   if (row.status === "live") {
     await move(id, "live", "finishing", { endedAt: new Date() }).catch((e) => {
@@ -283,7 +296,7 @@ async function recoverIfStale(row: Interview): Promise<void> {
       failure: { stage: "prepare", reason: "Preparing took too long. Please try again." } satisfies Failure,
     }).catch(() => {});
   } else if (row.status === "live" && row.startedAt && now - row.startedAt.getTime() > MAX_LIVE_MS) {
-    await endInterview(row.id).catch(() => {});
+    await endCall(row.id).catch(() => {});
   } else if (row.status === "finishing" && idle > STALE_FINISH_MS) {
     await move(row.id, "finishing", "report_failed", {
       failure: { stage: "report", reason: "Scoring took too long. Your transcript is saved." } satisfies Failure,
@@ -291,14 +304,14 @@ async function recoverIfStale(row: Interview): Promise<void> {
   }
 }
 
-export async function getInterview(id: string) {
-  await recoverIfStale(await load(id));
+export async function getInterview(id: string, userId: string) {
+  await recoverIfStale(await loadOwned(id, userId));
   return toView(await load(id));
 }
 
-export async function listInterviews(candidateId: string): Promise<InterviewSummary[]> {
+export async function listInterviews(userId: string): Promise<InterviewSummary[]> {
   const rows = await prisma.interview.findMany({
-    where: { candidateId },
+    where: { candidate: { userId } },
     orderBy: { createdAt: "desc" },
     take: 50,
   });

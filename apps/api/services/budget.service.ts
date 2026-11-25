@@ -3,9 +3,8 @@ import { tooMany } from "../lib/http-error";
 import { prisma } from "../lib/prisma";
 
 /*
- * There is no login yet, so anyone with the URL could spend voice minutes.
- * Two caps, both counted from the database so they survive restarts:
- * calls per IP per day, and total call minutes per day.
+ * Voice minutes cost money. Two caps, both counted from the database so they survive restarts:
+ * calls per user per day, and total call minutes per day across everyone.
  */
 
 const MAX_CALL_MS = 5 * 60_000;
@@ -16,15 +15,15 @@ function startOfUtcDay(): Date {
   return d;
 }
 
-export async function assertCallBudget(ip: string): Promise<void> {
+export async function assertCallBudget(userId: string): Promise<void> {
   const today = await prisma.interview.findMany({
     where: { startedAt: { gte: startOfUtcDay() } },
-    select: { clientIp: true, startedAt: true, endedAt: true },
+    select: { startedAt: true, endedAt: true, candidate: { select: { userId: true } } },
   });
 
-  const fromIp = today.filter((i) => i.clientIp === ip).length;
-  if (fromIp >= env.CALLS_PER_IP_PER_DAY) {
-    throw tooMany("daily_call_limit", `You can take ${env.CALLS_PER_IP_PER_DAY} interviews a day. Come back tomorrow.`);
+  const mine = today.filter((i) => i.candidate.userId === userId).length;
+  if (mine >= env.CALLS_PER_USER_PER_DAY) {
+    throw tooMany("daily_call_limit", `You can take ${env.CALLS_PER_USER_PER_DAY} interviews a day. Come back tomorrow.`);
   }
 
   const now = Date.now();

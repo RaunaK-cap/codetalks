@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { ChevronsUpDown, FolderGit2, History, House, LogOut, Plus, Settings } from "lucide-react";
@@ -16,7 +16,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useCandidate } from "@/lib/candidate";
+import { authClient } from "@/lib/auth-client";
+import { useMe } from "@/lib/me";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -32,9 +33,17 @@ function isActive(pathname: string, href: string) {
 }
 
 function UserMenu({ compact = false }: { compact?: boolean }) {
-  const { candidate, forget } = useCandidate();
-  const gh = candidate?.github;
-  const name = gh?.name ?? gh?.login ?? "Not connected";
+  const router = useRouter();
+  const { user, candidate, mutate } = useMe();
+  const name = user?.name || candidate?.github.name || candidate?.github.login || "";
+  const image = user?.image ?? candidate?.github.avatarUrl;
+  const handle = user?.username ? `@${user.username}` : (user?.email ?? "");
+
+  const signOut = async () => {
+    await authClient.signOut();
+    await mutate(undefined, { revalidate: false });
+    router.replace("/auth");
+  };
 
   return (
     <DropdownMenu>
@@ -45,27 +54,23 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
         )}
       >
         <Avatar className="size-7">
-          {gh && <AvatarImage src={gh.avatarUrl} alt="" />}
+          {image && <AvatarImage src={image} alt="" />}
           <AvatarFallback className="bg-foreground font-mono text-[0.6875rem] text-background">
-            {name.slice(0, 1).toUpperCase()}
+            {(name || "?").slice(0, 1).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         {!compact && (
           <>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[0.8125rem] font-medium">{name}</span>
-              <span className="block truncate font-mono text-[0.625rem] text-muted-foreground">
-                {gh ? `@${gh.login}` : "Connect GitHub"}
-              </span>
+              <span className="block truncate text-[0.8125rem] font-medium">{name || "…"}</span>
+              <span className="block truncate font-mono text-[0.625rem] text-muted-foreground">{handle}</span>
             </span>
             <ChevronsUpDown className="size-3.5 text-muted-foreground" />
           </>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={compact ? "end" : "start"} side={compact ? "bottom" : "top"} className="w-52">
-        <DropdownMenuLabel className="font-mono text-[0.6875rem]">
-          {gh ? `Connected as @${gh.login}` : "No GitHub connected"}
-        </DropdownMenuLabel>
+      <DropdownMenuContent align={compact ? "end" : "start"} side={compact ? "bottom" : "top"} className="w-56">
+        <DropdownMenuLabel className="truncate font-mono text-[0.6875rem]">{user?.email ?? "Signed in"}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/settings" />}>
           <Settings /> Settings
@@ -73,14 +78,10 @@ function UserMenu({ compact = false }: { compact?: boolean }) {
         <DropdownMenuItem render={<Link href="/" />}>
           <House /> Landing page
         </DropdownMenuItem>
-        {gh && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={forget}>
-              <LogOut /> Disconnect
-            </DropdownMenuItem>
-          </>
-        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={signOut}>
+          <LogOut /> Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

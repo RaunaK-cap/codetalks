@@ -115,7 +115,7 @@ export function LinkedinUpload({
     setBusy(true);
     setError(null);
     try {
-      const next = await api.uploadLinkedin(candidate.id, files);
+      const next = await api.uploadLinkedin(files);
       onChange(next);
       setFiles([]);
       setReplacing(false);

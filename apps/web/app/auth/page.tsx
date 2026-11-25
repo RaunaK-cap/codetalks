@@ -9,9 +9,9 @@ export const metadata: Metadata = {
 export default async function AuthPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>;
+  searchParams: Promise<{ mode?: string; next?: string }>;
 }) {
-  const { mode } = await searchParams;
+  const { mode, next } = await searchParams;
   const initial: AuthMode = mode === "signup" ? "signup" : "signin";
 
   return (
@@ -27,7 +27,7 @@ export default async function AuthPage({
             />
           </div>
           <div className="flex items-center justify-center px-6 pt-2 pb-10 sm:px-12 md:py-12">
-            <AuthForm initial={initial} />
+            <AuthForm initial={initial} next={next} />
           </div>
         </div>
       </div>

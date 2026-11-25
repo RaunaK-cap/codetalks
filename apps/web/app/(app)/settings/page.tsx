@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Settings · CodeTalk" };
 export default function SettingsPage() {
   return (
     <>
-      <PageHeader title="Settings" description="Your account on this browser." />
+      <PageHeader title="Settings" description="Your account." />
       <SettingsForm />
     </>
   );

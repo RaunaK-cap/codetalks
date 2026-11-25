@@ -1,15 +1,8 @@
-generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
-}
-
-datasource db {
-  provider = "postgresql"
-}
-
-// One person being interviewed. GitHub is required; LinkedIn is optional.
+// A signed-in user's interview profile (one per user). GitHub is required; LinkedIn is optional.
 model Candidate {
   id          String      @id @default(cuid())
+  userId      String      @unique
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   githubLogin String      @unique
   github      Json // GithubProfile: profile + repos, from the GitHub REST API
   linkedin    Json? // LinkedinProfile: extracted from screenshots

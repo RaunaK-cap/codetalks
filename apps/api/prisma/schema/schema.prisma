@@ -1,0 +1,12 @@
+// Generator and database. Models live in the other files in this folder:
+//   app.prisma  — CodeTalk: candidates, interviews, transcript lines
+//   auth.prisma — Better Auth: users, sessions, accounts, verifications
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}

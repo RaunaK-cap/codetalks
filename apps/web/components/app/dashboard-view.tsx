@@ -9,7 +9,7 @@ import { ScoreBar, ScoreNumber, Sparkline, SourceIcon } from "@/components/app/s
 import { ConnectFirst, Empty, ErrorNote, LoadingCards, Skeleton } from "@/components/app/states";
 import { buttonVariants } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api";
-import { useCandidate } from "@/lib/candidate";
+import { useMe } from "@/lib/me";
 import { DIMENSIONS, DIMENSION_LABEL, average, practiceAgainHref } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
@@ -196,22 +196,24 @@ function Sources({ login, repos, linkedin }: { login: string; repos: number; lin
 }
 
 export function DashboardView() {
-  const { id, candidate, isLoading, error, mutate } = useCandidate();
-  const list = useSWR(id ? ["interviews", id] : null, () => api.listInterviews(id!));
+  const { user, candidate, isLoading, error, mutate } = useMe();
+  const list = useSWR(candidate ? "interviews" : null, api.listInterviews);
 
-  if (isLoading) return <LoadingCards count={3} />;
-  if (error && error.status !== 404) return <ErrorNote message={errorMessage(error)} onRetry={() => mutate()} />;
+  if (isLoading || !user) return error ? <ErrorNote message={errorMessage(error)} onRetry={() => mutate()} /> : <LoadingCards count={3} />;
   if (!candidate) {
     return (
       <>
-        <PageHeader title="Welcome to CodeTalk" description="Connect GitHub, then take a five-minute voice interview." />
+        <PageHeader
+          title={`Welcome, ${user.name.split(" ")[0]}`}
+          description="Connect GitHub, then take a five-minute voice interview."
+        />
         <ConnectFirst />
       </>
     );
   }
 
   const scored = (list.data ?? []).filter((i): i is Scored => i.status === "reported" && i.scores !== null);
-  const name = candidate.github.name ?? candidate.github.login;
+  const name = user.name || candidate.github.name || candidate.github.login;
 
   return (
     <>

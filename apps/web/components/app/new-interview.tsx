@@ -10,7 +10,7 @@ import { Card, MonoLabel } from "@/components/app/card";
 import { ConnectFirst, Empty, LoadingCards } from "@/components/app/states";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api";
-import { useCandidate } from "@/lib/candidate";
+import { useMe } from "@/lib/me";
 import { DIMENSION_LABEL, ROLES, ROLE_HINT, ROLE_LABEL, STEP_LABEL, formatDate } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
@@ -137,7 +137,7 @@ function PlanStatus({ view, onRetry }: { view: InterviewView; onRetry: () => voi
 }
 
 export function NewInterview({ initialRepo }: { initialRepo?: string }) {
-  const { candidate, isLoading } = useCandidate();
+  const { candidate, isLoading } = useMe();
   const [mode, setMode] = useState<"latest" | "one">(initialRepo ? "one" : "latest");
   const [repo, setRepo] = useState<string | null>(initialRepo ?? null);
   const [role, setRole] = useState<Role>("backend");
@@ -169,7 +169,6 @@ export function NewInterview({ initialRepo }: { initialRepo?: string }) {
     setError(null);
     try {
       const created = await api.createInterview({
-        candidateId: candidate.id,
         role,
         repo: mode === "one" ? selected.fullName : undefined,
       });

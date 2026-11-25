@@ -3,11 +3,11 @@ import * as github from "../lib/github";
 import { badRequest } from "../lib/http-error";
 
 /* Profile + repos for a GitHub user, in our own shape. */
-export async function loadGithubProfile(input: string): Promise<GithubProfile> {
+export async function loadGithubProfile(input: string, token?: github.GhToken): Promise<GithubProfile> {
   const login = parseGithubLogin(input);
   if (!login) throw badRequest("invalid_github", "Enter a GitHub username or profile URL.");
 
-  const [user, repos] = await Promise.all([github.getUser(login), github.listRepos(login)]);
+  const [user, repos] = await Promise.all([github.getUser(login, token), github.listRepos(login, token)]);
 
   return {
     login: user.login,
@@ -99,11 +99,11 @@ export type RepoMaterial = {
 };
 
 /** README and languages, plus the `codeFiles` most central source files (0 skips the file tree). */
-export async function loadRepoMaterial(repo: GithubRepo, codeFiles: number): Promise<RepoMaterial> {
+export async function loadRepoMaterial(repo: GithubRepo, codeFiles: number, token?: github.GhToken): Promise<RepoMaterial> {
   const [readme, languages, tree] = await Promise.all([
-    github.getReadme(repo.fullName),
-    github.getLanguages(repo.fullName),
-    codeFiles > 0 ? github.getTree(repo.fullName, repo.defaultBranch) : Promise.resolve([]),
+    github.getReadme(repo.fullName, token),
+    github.getLanguages(repo.fullName, token),
+    codeFiles > 0 ? github.getTree(repo.fullName, repo.defaultBranch, token) : Promise.resolve([]),
   ]);
 
   const candidates = tree
@@ -114,7 +114,7 @@ export async function loadRepoMaterial(repo: GithubRepo, codeFiles: number): Pro
 
   const files = await Promise.all(
     candidates.map(async (e) => {
-      const text = await github.getFile(repo.fullName, e.path);
+      const text = await github.getFile(repo.fullName, e.path, token);
       return text ? { path: e.path, excerpt: text.slice(0, FILE_CHARS) } : null;
     }),
   );

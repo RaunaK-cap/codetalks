@@ -61,17 +61,23 @@ lib/                env, prisma, github/xai/fish clients, prompts, state machine
 prisma/             schema + migrations      packages/contracts  Zod shapes shared with web
 ```
 
+All routes except `/health`, `/providers` and `/auth/*` need a signed-in session, and only ever return the caller's own data.
+
 | Method | Path | What it does |
 | --- | --- | --- |
-| POST | `/api/candidates` `{ github }` | Reads the GitHub user + repos (REST), saves the candidate |
-| GET | `/api/candidates/:id` | Candidate with GitHub and LinkedIn data |
-| POST | `/api/candidates/:id/linkedin` | Multipart `screenshots` (1–4 images) → Gemini vision → LinkedIn profile |
-| GET | `/api/candidates/:id/interviews` | History list with scores |
-| POST | `/api/interviews` `{ candidateId, role, repo? }` | 202, prepares in the background (repo → fact sheet → plan) |
+| * | `/api/auth/*` | Better Auth: email/username + password, GitHub, Google, sessions, sign-out |
+| GET | `/api/providers` | Which social sign-ins are configured |
+| GET | `/api/me` | The user, their candidate profile (or null), and whether they signed in with GitHub (auto-connects GitHub) |
+| POST | `/api/me/github` `{ github }` | Reads a GitHub user + repos (REST) and saves it as the user's profile |
+| POST | `/api/me/linkedin` | Multipart `screenshots` (1–4 images) → Gemini vision → LinkedIn profile |
+| GET | `/api/me/interviews` | History list with scores |
+| POST | `/api/interviews` `{ role, repo? }` | 202, prepares in the background (latest 3 repos, or `repo` for a deep dive) |
 | GET | `/api/interviews/:id` | Status + what that status allows (poll this) |
 | POST | `/api/interviews/:id/call` | Budget check, creates the Fish session, returns `{ session }` for `AgentSession.start` |
 | POST | `/api/interviews/:id/lines` `{ seq, speaker, text }` | Saves one final transcript line (idempotent) |
 | POST | `/api/interviews/:id/end` | Ends the call, pulls Fish history, scores. Safe to call twice |
+
+Auth: Better Auth runs inside Express (`lib/auth.ts`, tables in `prisma/schema/auth.prisma`). The web app forwards `/api/*` to Express (`next.config.ts` rewrite), so the session cookie lives on the web origin. OAuth callbacks: `<web origin>/api/auth/callback/github` and `/google`.
 
 Setup: copy `apps/api/.env.example` to `apps/api/.env` and `apps/web/.env.example` to `apps/web/.env.local`, fill them, then `bun run db:migrate --name init`, then `bun run dev`. Tests: `bun test`.
 Fish agent: publish it, set `conversation.max_duration_seconds` to 300.
@@ -109,7 +115,7 @@ Fish agent: publish it, set `conversation.max_duration_seconds` to 300.
 | Web | Next.js App Router, Tailwind v4, shadcn (base-nova, Base UI), `motion` |
 | API | Express on Bun/Node (`apps/api`) |
 | DB | Neon Free Postgres + Prisma (Neon Object Storage later) |
-| Auth | better-auth, GitHub login primary (after the v1 slice) |
+| Auth | Better Auth, self-hosted in Express: email or username + password, GitHub, Google |
 | GitHub | Octokit GraphQL, one snapshot call, cached 24h in Postgres |
 | PDFs | `pdf-parse`, parsed in memory, 5 MB cap |
 | Text LLM | Google Gemini via its OpenAI-compatible API (`GOOGLE_API_KEY`): fact sheet, question plan, scoring, LinkedIn screenshots |

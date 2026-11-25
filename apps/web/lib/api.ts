@@ -4,13 +4,19 @@ import type {
   InterviewSummary,
   InterviewView,
   Line,
+  MeView,
+  ProvidersView,
   Role,
   StartCallResponse,
 } from "@repo/contracts";
 
-/* Typed client for apps/api. Every non-2xx response becomes an ApiError with the server's message. */
+/*
+ * Typed client for apps/api. Calls go to /api on this origin; next.config.ts forwards them
+ * to Express, so the Better Auth session cookie is sent automatically.
+ * Every non-2xx response becomes an ApiError with the server's message.
+ */
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+const BASE = "/api";
 
 export class ApiError extends Error {
   constructor(
@@ -46,16 +52,18 @@ const post = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
 
 export const api = {
-  connectGithub: (github: string) => post<CandidateView>("/candidates", { github }),
-  getCandidate: (id: string) => request<CandidateView>(`/candidates/${id}`),
-  listInterviews: (candidateId: string) => request<InterviewSummary[]>(`/candidates/${candidateId}/interviews`),
-  uploadLinkedin: (candidateId: string, files: File[]) => {
+  providers: () => request<ProvidersView>("/providers"),
+
+  me: () => request<MeView>("/me"),
+  connectGithub: (github: string) => post<CandidateView>("/me/github", { github }),
+  listInterviews: () => request<InterviewSummary[]>("/me/interviews"),
+  uploadLinkedin: (files: File[]) => {
     const form = new FormData();
     for (const f of files) form.append("screenshots", f);
-    return request<CandidateView>(`/candidates/${candidateId}/linkedin`, { method: "POST", body: form });
+    return request<CandidateView>("/me/linkedin", { method: "POST", body: form });
   },
 
-  createInterview: (input: { candidateId: string; role: Role; repo?: string }) =>
+  createInterview: (input: { role: Role; repo?: string }) =>
     post<InterviewView>("/interviews", input),
   getInterview: (id: string) => request<InterviewView>(`/interviews/${id}`),
   startCall: (id: string) => post<StartCallResponse>(`/interviews/${id}/call`),

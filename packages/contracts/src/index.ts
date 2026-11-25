@@ -168,7 +168,6 @@ export const ConnectGithubBody = z.object({
 
 /** Without `repo`, the interview covers the candidate's latest projects. With it, one repo in depth. */
 export const CreateInterviewBody = z.object({
-  candidateId: z.string().min(1),
   role: Role,
   repo: z.string().min(1).max(200).optional(),
 });
@@ -199,6 +198,24 @@ export type CandidateView = {
   linkedin: LinkedinProfile | null;
   updatedAt: string;
 };
+
+export type UserView = {
+  id: string;
+  name: string;
+  email: string;
+  username: string | null;
+  image: string | null;
+};
+
+/** The signed-in user, and their interview profile once GitHub is connected. */
+export type MeView = {
+  user: UserView;
+  candidate: CandidateView | null;
+  /** True when the user signed in with GitHub, so the profile can connect without typing a username. */
+  hasGithubAccount: boolean;
+};
+
+export type ProvidersView = { github: boolean; google: boolean };
 
 /** The plan without the grader's answer key; safe to show before and during the call. */
 export type PlanPreview = {
