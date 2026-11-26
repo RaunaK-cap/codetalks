@@ -43,8 +43,12 @@ This is the only doc in the repo. It replaces `plan.md`, `architecture.md`, `fis
 
 ```sh
 bun install
-cd apps/web && bunx next dev --port 3000 --hostname 0.0.0.0   # web
-cd apps/api && bun run index.ts                               # api
+cp -n packages/db/.env.example packages/db/.env
+cp -n apps/api/.env.example apps/api/.env
+cp -n apps/web/.env.example apps/web/.env.local
+# Fill in those files, then apply the existing migrations to your chosen database.
+bun run --cwd packages/db db:deploy
+bun run dev
 ```
 
 Checks from `apps/web`: `bun run check-types`.
@@ -57,8 +61,9 @@ Checks from `apps/web`: `bun run check-types`.
 index.ts            starts the server        app.ts         express wiring
 routes/             URL → controller         controllers/   read request, call service, send response
 services/           all the logic            middleware/    errors, validation, uploads
-lib/                env, prisma, github/xai/fish clients, prompts, state machine
-prisma/             schema + migrations      packages/contracts  Zod shapes shared with web
+lib/                env, github/xai/fish clients, prompts, state machine
+packages/db/        Prisma client, schema and migrations
+packages/contracts/  Zod shapes shared with web
 ```
 
 All routes except `/health`, `/providers` and `/auth/*` need a signed-in session, and only ever return the caller's own data.
@@ -77,9 +82,9 @@ All routes except `/health`, `/providers` and `/auth/*` need a signed-in session
 | POST | `/api/interviews/:id/lines` `{ seq, speaker, text }` | Saves one final transcript line (idempotent) |
 | POST | `/api/interviews/:id/end` | Ends the call, pulls Fish history, scores. Safe to call twice |
 
-Auth: Better Auth runs inside Express (`lib/auth.ts`, tables in `prisma/schema/auth.prisma`). The web app forwards `/api/*` to Express (`next.config.ts` rewrite), so the session cookie lives on the web origin. OAuth callbacks: `<web origin>/api/auth/callback/github` and `/google`.
+Auth: Better Auth runs inside Express (`lib/auth.ts`, tables in `packages/db/prisma/schema/auth.prisma`). The web app forwards `/api/*` to Express (`next.config.ts` rewrite), so the session cookie lives on the web origin. OAuth callbacks: `<web origin>/api/auth/callback/github` and `/google`.
 
-Setup: copy `apps/api/.env.example` to `apps/api/.env` and `apps/web/.env.example` to `apps/web/.env.local`, fill them, then `bun run db:migrate --name init`, then `bun run dev`. Tests: `bun test`.
+Database setup is in `packages/db`. Server code imports the configured client with `import { prisma } from "@repo/db"`. For a schema change, run `bun run --cwd packages/db db:migrate --name <change>`, then `bun run --cwd packages/db db:generate`.
 Fish agent: publish it, set `conversation.max_duration_seconds` to 300.
 
 ## 2b. Deploy

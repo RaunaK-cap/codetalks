@@ -15,10 +15,9 @@ import {
   type StartCallResponse,
   type VoiceSessionToken,
 } from "@repo/contracts";
-import type { Interview } from "../generated/prisma/client";
 import { HttpError, conflict, notFound } from "../lib/http-error";
 import { assertMove } from "../lib/interview-machine";
-import { prisma } from "../lib/prisma";
+import { prisma } from "@repo/db";
 import { interviewerPrompt } from "../lib/prompts";
 import { assertCallBudget } from "./budget.service";
 import { candidateOf, githubTokenOf } from "./candidate.service";
@@ -31,6 +30,8 @@ import { voice } from "./voice.service";
  * The interview aggregate. This is the only module that changes an interview's status.
  * Long work (prepare, finish) runs in the background; the page polls getInterview().
  */
+
+type Interview = Awaited<ReturnType<typeof load>>;
 
 const STALE_PREPARE_MS = 3 * 60_000;
 const STALE_FINISH_MS = 3 * 60_000;
@@ -106,7 +107,7 @@ async function move(id: string, from: InterviewStatus, to: InterviewStatus, data
   if (count === 0) throw conflict("stale_state", `Interview is no longer ${from}.`);
 }
 
-async function load(id: string): Promise<Interview> {
+async function load(id: string) {
   const row = await prisma.interview.findUnique({ where: { id } });
   if (!row) throw notFound("Interview");
   return row;

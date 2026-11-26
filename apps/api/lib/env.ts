@@ -19,7 +19,6 @@ const Env = z.object({
   GOOGLE_CLIENT_ID: optional(z.string()),
   GOOGLE_CLIENT_SECRET: optional(z.string()),
 
-  DATABASE_URL: required,
   GITHUB_TOKEN: optional(z.string()),
   GOOGLE_API_KEY: required,
   LLM_BASE_URL: z.string().default("https://generativelanguage.googleapis.com/v1beta/openai/"),

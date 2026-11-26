@@ -1,7 +1,7 @@
 import { GithubProfile, LinkedinProfile, type CandidateView, type MeView } from "@repo/contracts";
 import { getAuthenticatedLogin } from "../lib/github";
 import { conflict, notFound } from "../lib/http-error";
-import { prisma } from "../lib/prisma";
+import { prisma } from "@repo/db";
 import { loadGithubProfile } from "./github.service";
 import { extractLinkedinProfile, type Screenshot } from "./linkedin.service";
 

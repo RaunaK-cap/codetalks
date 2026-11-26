@@ -1,6 +1,6 @@
 import { env } from "../lib/env";
 import { tooMany } from "../lib/http-error";
-import { prisma } from "../lib/prisma";
+import { prisma } from "@repo/db";
 
 /*
  * Voice minutes cost money. Two caps, both counted from the database so they survive restarts:

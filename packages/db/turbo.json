@@ -1,0 +1,23 @@
+{
+  "extends": [
+    "//"
+  ],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "prisma/schema/**",
+        "prisma.config.ts",
+        "env.ts",
+        "package.json"
+      ],
+      "outputs": [
+        "generated/**"
+      ]
+    },
+    "check-types": {
+      "dependsOn": [
+        "build"
+      ]
+    }
+  }
+}

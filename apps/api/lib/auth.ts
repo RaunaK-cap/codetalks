@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { username } from "better-auth/plugins/username";
 import { env } from "./env";
-import { prisma } from "./prisma";
+import { prisma } from "@repo/db";
 
 /*
  * Better Auth, self-hosted inside the API. Mounted at /api/auth (see app.ts).

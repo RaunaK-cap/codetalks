@@ -6,14 +6,15 @@ services:
     runtime: node # Render's JS runtime ships with Bun; all commands below use it
     plan: starter # always on; free instances sleep after 15 min idle
     region: virginia # same region as the Neon database (aws us-east-1)
-    buildCommand: bun install --frozen-lockfile && cd apps/api && bunx prisma generate
-    preDeployCommand: cd apps/api && bunx prisma migrate deploy
+    buildCommand: bun install --frozen-lockfile && bun run --cwd packages/db db:generate
+    preDeployCommand: bun run --cwd packages/db db:deploy
     startCommand: cd apps/api && bun index.ts
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     buildFilter:
       paths:
         - apps/api/**
+        - packages/db/**
         - packages/contracts/**
         - package.json
         - bun.lock
